@@ -6,7 +6,7 @@
 
 ### 기술 스택
 
-- Vue, TypeScript, Vite, Tailwind CSS
+- Vue, TypeScript, Vite, Tailwind CSSssss
 
 ### 참여자
 
