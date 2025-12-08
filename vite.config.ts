@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // @를 src 폴더의 절대 경로로 매핑합니다.
-      '@': fileURLToPath(new URL('src', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 })
