@@ -10,7 +10,14 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* ▼▼▼ 여기 아래 4줄을 추가하세요 ▼▼▼ */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+    /* ▲▲▲ 여기까지 ▲▲▲ */
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

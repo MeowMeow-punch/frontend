@@ -1,30 +1,18 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { RouterView } from 'vue-router'
+import NavBar from '@/components/NavBar/NavBar.vue' // 방금 만든 컴포넌트 임포트
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+  <header>
+    <NavBar />
+  </header>
+
+  <main>
+    <RouterView />
+  </main>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
+<style>
+/* 전역 스타일이 필요하면 여기에 작성 (Tailwind를 쓰면 거의 필요 없음) */
 </style>

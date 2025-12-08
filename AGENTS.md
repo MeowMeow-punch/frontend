@@ -17,7 +17,15 @@
 
 ## 명명 규칙
 
-- 컴포넌트 파일명은 PascalCase(=UpperCamelCase)로 통일합니다. 
-- CSS 클래스는 snake_case로 통일하고, CSS Modules에서는 styles.class_name 점 표기로 접근합니다. 
-- 약어/축약은 지양하고 의미 중심으로 명명하며, 동일 개념에는 동일 용어를 일관되게 사용합니다. 
+- 컴포넌트 파일명은 PascalCase(=UpperCamelCase)로 통일합니다.
+- CSS 클래스는 snake_case로 통일하고, CSS Modules에서는 styles.class_name 점 표기로 접근합니다.
+- 약어/축약은 지양하고 의미 중심으로 명명하며, 동일 개념에는 동일 용어를 일관되게 사용합니다.
 - 단, 재사용 하위 파트가 많으면 BEM을 사용합니다.
+
+## 할때 사용법
+
+1. codex
+2. /approㅂ=...
+   -> full 머시기 (권한 full로 )
+
+/model -> gpt-5.1-codex-max
