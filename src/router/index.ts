@@ -2,20 +2,22 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 1. 뷰 컴포넌트 임포트
 import HomeView from '@/views/HomeView/HomeView.vue'
 import AboutView from '@/views/AboutView/AboutView.vue'
+import SignupView from '@/views/SignupView/SignupView.vue'
 
 const router = createRouter({
-  // history: createWebHistory(import.meta.env.BASE_URL),
-  history: createWebHistory('import.meta.env.BASE_URL'),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/login',
       name: 'login',
       component: AboutView,
+      meta: { hideNav: true },
     },
     {
       path: '/regist', // 회원가입
       name: 'regist',
-      component: AboutView,
+      component: SignupView,
+      meta: { hideNav: true },
     },
     {
       path: '/', // 메인페이지
