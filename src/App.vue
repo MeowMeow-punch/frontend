@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import NavBar from '@/components/NavBar/NavBar.vue' // 방금 만든 컴포넌트 임포트
+
+const route = useRoute()
+const showNav = computed(() => !route.meta?.hideNav)
 </script>
 
 <template>
-  <header>
+  <header v-if="showNav">
     <NavBar />
   </header>
 
