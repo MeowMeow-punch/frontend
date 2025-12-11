@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import img_logo from '@/assets/logo.svg'
-import img_community from '@/assets/icon_community.svg'
-import img_diet from '@/assets/icon_diet.svg'
-import img_mypage from '@/assets/icon_mypage.svg'
-import img_home from '@/assets/lcon_home.svg'
+import imgLogo from '@/assets/logo.svg'
+import imgCommunity from '@/assets/IconCommunity.svg'
+import imgDiet from '@/assets/IconDiet.svg'
+import imgMypage from '@/assets/IconMypage.svg'
+import imgHome from '@/assets/IconHome.svg'
 
 // React(Shadcn UI)의 navigationMenuTriggerStyle을 Tailwind 기본 색상으로 변환
 // bg-background -> bg-white
@@ -19,20 +19,20 @@ const linkBaseClass =
     <div class="container mx-auto flex items-center justify-between">
       <div class="text-xl font-bold text-slate-900">
         <RouterLink to="/" class="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <img :src="img_logo" alt="MyLogo" class="h-8 w-auto" />
+          <img :src="imgLogo" alt="MyLogo" class="h-8 w-auto" />
         </RouterLink>
       </div>
 
       <ul class="flex list-none items-center justify-center gap-1">
         <li>
           <RouterLink to="/" :class="linkBaseClass" active-class="bg-slate-100 text-slate-900">
-            <img :src="img_home" alt="홈" class="h-5 w-5" />
+            <img :src="imgHome" alt="홈" class="h-5 w-5" />
             <span>홈</span>
           </RouterLink>
         </li>
         <li>
           <RouterLink to="/diet" :class="linkBaseClass" active-class="bg-slate-100 text-slate-900">
-            <img :src="img_diet" alt="식단" class="h-5 w-5" />
+            <img :src="imgDiet" alt="식단" class="h-5 w-5" />
             <span>식단</span>
           </RouterLink>
         </li>
@@ -42,7 +42,7 @@ const linkBaseClass =
             :class="linkBaseClass"
             active-class="bg-slate-100 text-slate-900"
           >
-            <img :src="img_community" alt="커뮤니티" class="h-5 w-5" />
+            <img :src="imgCommunity" alt="커뮤니티" class="h-5 w-5" />
             <span>커뮤니티</span>
           </RouterLink>
         </li>
@@ -52,7 +52,7 @@ const linkBaseClass =
             :class="linkBaseClass"
             active-class="bg-slate-100 text-slate-900"
           >
-            <img :src="img_mypage" alt="마이페이지" class="h-5 w-5" />
+            <img :src="imgMypage" alt="마이페이지" class="h-5 w-5" />
             <span>마이페이지</span>
           </RouterLink>
         </li>
