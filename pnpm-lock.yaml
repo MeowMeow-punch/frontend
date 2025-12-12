@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      lucide-vue-next:
+        specifier: ^0.471.0
+        version: 0.471.0(vue@3.5.25(typescript@5.9.3))
       vue:
         specifier: ^3.5.24
         version: 3.5.25(typescript@5.9.3)
@@ -666,6 +669,11 @@ packages:
   log-update@6.1.0:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
     engines: {node: '>=18'}
+
+  lucide-vue-next@0.471.0:
+    resolution: {integrity: sha512-ZJyImsuBOR91VF5auILuo1U0m93sSjYs+i/m5ISx8oG4FWMXX7hzuotx24/dTMRp+e8pMWUeVmPBKsNcNSrUzg==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1547,6 +1555,10 @@ snapshots:
       slice-ansi: 7.1.2
       strip-ansi: 7.1.2
       wrap-ansi: 9.0.2
+
+  lucide-vue-next@0.471.0(vue@3.5.25(typescript@5.9.3)):
+    dependencies:
+      vue: 3.5.25(typescript@5.9.3)
 
   magic-string@0.30.21:
     dependencies:
