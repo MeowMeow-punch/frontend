@@ -14,6 +14,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'back'): void
+  (e: 'logo'): void
 }>()
 
 const progress = computed(() => {
@@ -35,14 +36,18 @@ const progress = computed(() => {
           <span class="sr-only">뒤로가기</span>
         </button>
 
-        <div class="absolute left-1/2 -translate-x-1/2">
+        <button
+          type="button"
+          @click="emit('logo')"
+          class="absolute left-1/2 -translate-x-1/2 rounded-lg px-2 py-1 text-[var(--gray-900)] transition-all hover:bg-[var(--gray-50)] active:scale-95"
+        >
           <span
             class="text-[22px] tracking-[-0.02em]"
             style="font-family: JalnanGothic; font-weight: normal"
           >
             픽<span style="color: #00c73c">잇</span>
           </span>
-        </div>
+        </button>
 
         <div class="w-10" />
       </div>

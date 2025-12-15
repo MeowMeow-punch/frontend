@@ -8,14 +8,14 @@ const handleComplete = () => {
   router.push('/')
 }
 
-const handleBack = () => {
-  router.back()
+const handleExit = () => {
+  router.push('/login')
 }
 </script>
 
 <template>
   <div class="signup-shell bg-white">
-    <SignupFlow @complete="handleComplete" @back="handleBack" />
+    <SignupFlow @complete="handleComplete" @exit="handleExit" />
   </div>
 </template>
 

@@ -35,7 +35,7 @@ type FocusType = 'nutrition' | 'diet' | 'bulkup' | null
 
 const emit = defineEmits<{
   (e: 'complete'): void
-  (e: 'back'): void
+  (e: 'exit'): void
 }>()
 
 const step = ref<SignupStep>('nickname')
@@ -177,6 +177,19 @@ const handleTargetWeightNext = (weight: string) => {
 const handleWelcomeComplete = () => {
   emit('complete')
 }
+
+const handleBack = () => {
+  const order = stepOrder.value
+  const currentIndex = order.indexOf(step.value)
+  if (currentIndex > 0) {
+    const previousStep = order[currentIndex - 1]
+    if (previousStep) {
+      step.value = previousStep
+      return
+    }
+  }
+  emit('exit')
+}
 </script>
 
 <template>
@@ -186,7 +199,8 @@ const handleWelcomeComplete = () => {
     :step-title="stepInfo.title"
     :step-description="stepInfo.description"
     :show-progress="showProgress"
-    @back="emit('back')"
+    @back="handleBack"
+    @logo="emit('exit')"
   >
     <Transition name="fade-slide" mode="out-in">
       <StepNickname v-if="step === 'nickname'" key="nickname" @next="handleNicknameNext" />
