@@ -64,7 +64,9 @@ const emit = defineEmits<{
 
         <div class="min-w-0 flex-1 py-1">
           <div class="mb-1 flex items-center gap-2">
-            <span class="rounded-md bg-[#E5F9EB] px-2 py-0.5 text-[11px] font-bold text-[#00C73C]">
+            <span
+              class="rounded-md bg-[var(--main-100)] px-2 py-0.5 text-[11px] font-bold text-[var(--main-300)]"
+            >
               {{ meal.timeLabel }}
             </span>
             <span class="text-[12px] text-[var(--gray-500)]"> {{ meal.calories }} kcal </span>

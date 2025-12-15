@@ -29,7 +29,10 @@ const caloriePercentage = computed(() =>
       </div>
     </div>
     <div class="h-2 overflow-hidden rounded-full bg-[var(--gray-200)]">
-      <div class="h-full rounded-full bg-[#00C73C]" :style="{ width: `${caloriePercentage}%` }" />
+      <div
+        class="h-full rounded-full bg-[var(--main-300)]"
+        :style="{ width: `${caloriePercentage}%` }"
+      />
     </div>
   </div>
 </template>

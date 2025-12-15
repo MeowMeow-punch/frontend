@@ -25,7 +25,11 @@ defineProps<{
           <div
             :class="[
               'h-full rounded-full',
-              i === 0 ? 'bg-[#00C73C]' : i === 1 ? 'bg-[#9CA3AF]' : 'bg-[#FF3B30]',
+              i === 0
+                ? 'bg-[var(--main-300)]'
+                : i === 1
+                  ? 'bg-[var(--gray-500)]'
+                  : 'bg-[var(--error-300)]',
             ]"
             :style="{ width: `${(nut.current / nut.target) * 100}%` }"
           />

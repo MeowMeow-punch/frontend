@@ -22,6 +22,10 @@ const emit = defineEmits<{
   (e: 'navigate', route: string): void
 }>()
 
+const TRANSITION_DURATION_MS = 400
+const SWIPE_THRESHOLD_PX = 50
+const BANNER_AUTOPLAY_INTERVAL_MS = 15000
+
 const currentBannerIndex = ref(0)
 const isTransitioning = ref(false)
 const touchStart = ref(0)
@@ -34,24 +38,17 @@ const currentBanner = computed<Banner>(
   () => props.banners[currentBannerIndex.value] ?? props.banners[0],
 )
 
-const goToPreviousBanner = () => {
+const goToBanner = (index: number) => {
   if (isTransitioning.value || props.banners.length === 0) return
   isTransitioning.value = true
-  currentBannerIndex.value =
-    (currentBannerIndex.value - 1 + props.banners.length) % props.banners.length
+  currentBannerIndex.value = (index + props.banners.length) % props.banners.length
   window.setTimeout(() => {
     isTransitioning.value = false
-  }, 400)
+  }, TRANSITION_DURATION_MS)
 }
 
-const goToNextBanner = () => {
-  if (isTransitioning.value || props.banners.length === 0) return
-  isTransitioning.value = true
-  currentBannerIndex.value = (currentBannerIndex.value + 1) % props.banners.length
-  window.setTimeout(() => {
-    isTransitioning.value = false
-  }, 400)
-}
+const goToPreviousBanner = () => goToBanner(currentBannerIndex.value - 1)
+const goToNextBanner = () => goToBanner(currentBannerIndex.value + 1)
 
 const handleTouchStart = (e: TouchEvent) => {
   const firstTouch = e.touches[0]
@@ -68,9 +65,7 @@ const handleTouchMove = (e: TouchEvent) => {
 const handleTouchEnd = () => {
   if (!touchStart.value || !touchEnd.value) return
   const distance = touchStart.value - touchEnd.value
-  if (Math.abs(distance) > 50) {
-    distance > 0 ? goToNextBanner() : goToPreviousBanner()
-  }
+  handleSwipe(distance)
   touchStart.value = 0
   touchEnd.value = 0
 }
@@ -92,9 +87,7 @@ const handleMouseUp = () => {
     return
   }
   const distance = dragStart.value - dragEnd.value
-  if (Math.abs(distance) > 50) {
-    distance > 0 ? goToNextBanner() : goToPreviousBanner()
-  }
+  handleSwipe(distance)
   dragStart.value = 0
   dragEnd.value = 0
 }
@@ -104,10 +97,27 @@ const handleMouseLeave = () => {
   dragEnd.value = 0
 }
 
+const handleSwipe = (distance: number) => {
+  if (Math.abs(distance) > SWIPE_THRESHOLD_PX) {
+    distance > 0 ? goToNextBanner() : goToPreviousBanner()
+  }
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    goToPreviousBanner()
+  }
+  if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    goToNextBanner()
+  }
+}
+
 onMounted(() => {
   timerId = window.setInterval(() => {
     goToNextBanner()
-  }, 15000)
+  }, BANNER_AUTOPLAY_INTERVAL_MS)
 })
 
 onBeforeUnmount(() => {
@@ -120,6 +130,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="relative mb-8 flex min-h-[220px] cursor-grab select-none flex-col justify-center overflow-hidden rounded-[26px] p-7 active:cursor-grabbing md:mb-10 md:p-9"
+    tabindex="0"
     @touchstart="handleTouchStart"
     @touchmove="handleTouchMove"
     @touchend="handleTouchEnd"
@@ -127,6 +138,7 @@ onBeforeUnmount(() => {
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
     @mouseleave="handleMouseLeave"
+    @keydown="handleKeydown"
   >
     <div
       v-for="(banner, index) in banners"
@@ -141,12 +153,12 @@ onBeforeUnmount(() => {
           class="absolute right-[-10%] top-[-20%] h-[400px] w-[400px] rounded-full bg-[#B2F2BB] opacity-60 blur-[80px]"
         />
         <div
-          class="animate-float absolute right-[5%] top-[15%] rotate-[15deg] text-[100px] drop-shadow-xl"
+          class="animate_float absolute right-[5%] top-[15%] rotate-[15deg] text-[100px] drop-shadow-xl"
         >
           🥗
         </div>
         <div
-          class="animate-float-delayed absolute bottom-[15%] right-[25%] -rotate-[15deg] text-[60px] opacity-90 drop-shadow-lg"
+          class="animate_float_delayed absolute bottom-[15%] right-[25%] -rotate-[15deg] text-[60px] opacity-90 drop-shadow-lg"
         >
           🥑
         </div>
@@ -160,12 +172,12 @@ onBeforeUnmount(() => {
           class="absolute left-[20%] top-[-10%] h-[400px] w-[400px] rounded-full bg-[#E9E4FF] blur-[80px]"
         />
         <div
-          class="animate-float absolute right-[10%] top-[15%] rotate-[5deg] text-[90px] drop-shadow-xl"
+          class="animate_float absolute right-[10%] top-[15%] rotate-[5deg] text-[90px] drop-shadow-xl"
         >
           🔥
         </div>
         <div
-          class="animate-float-delayed absolute right-[25%] top-[10%] -rotate-[10deg] text-[50px] opacity-80 drop-shadow-lg"
+          class="animate_float_delayed absolute right-[25%] top-[10%] -rotate-[10deg] text-[50px] opacity-80 drop-shadow-lg"
         >
           👟
         </div>
@@ -214,16 +226,7 @@ onBeforeUnmount(() => {
         :key="index"
         class="h-1.5 rounded-full transition-all duration-300"
         :class="index === currentBannerIndex ? 'w-4 bg-gray-800' : 'w-1.5 bg-gray-400/50'"
-        @click.stop="
-          () => {
-            if (isTransitioning) return
-            isTransitioning = true
-            currentBannerIndex = index
-            window.setTimeout(() => {
-              isTransitioning = false
-            }, 400)
-          }
-        "
+        @click.stop="() => goToBanner(index)"
       />
     </div>
   </div>
@@ -242,11 +245,11 @@ onBeforeUnmount(() => {
   }
 }
 
-.animate-float {
+.animate_float {
   animation: float 8s ease-in-out infinite;
 }
 
-.animate-float-delayed {
+.animate_float_delayed {
   animation: float 10s ease-in-out infinite 1s;
 }
 </style>

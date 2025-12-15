@@ -16,7 +16,7 @@ defineProps<{
       </div>
       <div class="flex items-center justify-between">
         <span class="text-[14px] text-[var(--gray-700)]">달성률</span>
-        <span class="text-[16px] font-bold text-[#00C73C]">{{ achievement }}</span>
+        <span class="text-[16px] font-bold text-[var(--main-300)]">{{ achievement }}</span>
       </div>
       <div class="flex items-center justify-between">
         <span class="text-[14px] text-[var(--gray-700)]">연속일</span>

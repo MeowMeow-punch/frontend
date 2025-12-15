@@ -15,14 +15,16 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="cursor-pointer rounded-2xl border border-[var(--gray-200)] bg-white p-6 transition-colors hover:border-[#00C73C]"
+    class="cursor-pointer rounded-2xl border border-[var(--gray-200)] bg-white p-6 transition-colors hover:border-[var(--main-300)]"
     @click="emit('click')"
   >
     <div class="mb-3 flex items-center gap-2">
       <div class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--gray-100)]">
         <span class="text-sm text-[var(--gray-600)]">🍽️</span>
       </div>
-      <span class="rounded-md bg-[#E5F9EB] px-2 py-0.5 text-[11px] font-bold text-[#00C73C]">
+      <span
+        class="rounded-md bg-[var(--main-100)] px-2 py-0.5 text-[11px] font-bold text-[var(--main-300)]"
+      >
         {{ chip }}
       </span>
     </div>
