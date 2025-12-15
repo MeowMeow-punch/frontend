@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import SignupFlow from '@/components/Signup/SignupFlow.vue'
+import type { SignupResult } from '@/components/Signup/SignupFlow.vue'
 
 const router = useRouter()
 
-const handleComplete = (payload: unknown) => {
+const handleComplete = (payload: SignupResult) => {
   console.log('[Signup] complete payload', payload)
   router.push('/')
 }

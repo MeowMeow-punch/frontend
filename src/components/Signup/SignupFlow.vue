@@ -62,7 +62,7 @@ const mealCount = ref('')
 const activityLevel = ref('')
 const targetWeight = ref('')
 
-type SignupResult = {
+export type SignupResult = {
   nickname: string
   terms: typeof termsAccepted.value
   userInfo: typeof userInfo.value
@@ -216,11 +216,8 @@ const handleBack = () => {
   const order = stepOrder.value
   const currentIndex = order.indexOf(step.value)
   if (currentIndex > 0) {
-    const previousStep = order[currentIndex - 1]
-    if (previousStep) {
-      step.value = previousStep
-      return
-    }
+    step.value = order[currentIndex - 1]!
+    return
   }
   emit('exit')
 }
