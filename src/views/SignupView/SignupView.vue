@@ -4,7 +4,8 @@ import SignupFlow from '@/components/Signup/SignupFlow.vue'
 
 const router = useRouter()
 
-const handleComplete = () => {
+const handleComplete = (payload: unknown) => {
+  console.log('[Signup] complete payload', payload)
   router.push('/')
 }
 

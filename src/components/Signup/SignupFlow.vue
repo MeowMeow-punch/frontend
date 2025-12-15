@@ -34,7 +34,7 @@ type SignupStep =
 type FocusType = 'nutrition' | 'diet' | 'bulkup' | null
 
 const emit = defineEmits<{
-  (e: 'complete'): void
+  (e: 'complete', payload: SignupResult): void
   (e: 'exit'): void
 }>()
 
@@ -61,6 +61,20 @@ const habits = ref({ smoking: '', drinking: '' })
 const mealCount = ref('')
 const activityLevel = ref('')
 const targetWeight = ref('')
+
+type SignupResult = {
+  nickname: string
+  terms: typeof termsAccepted.value
+  userInfo: typeof userInfo.value
+  allergies: string[]
+  affiliation: { type: typeof affiliationType.value; selected: string }
+  focusType: FocusType
+  diseases: string[]
+  habits: typeof habits.value
+  mealCount: string
+  activityLevel: string
+  targetWeight: string
+}
 
 const stepOrder = computed<SignupStep[]>(() => {
   const order: SignupStep[] = ['nickname', 'terms', 'info', 'allergies', 'affiliation']
@@ -175,7 +189,27 @@ const handleTargetWeightNext = (weight: string) => {
 }
 
 const handleWelcomeComplete = () => {
-  emit('complete')
+  const payload = {
+    nickname: nickname.value,
+    terms: { ...termsAccepted.value },
+    userInfo: { ...userInfo.value },
+    allergies: [...allergies.value],
+    affiliation: {
+      type: affiliationType.value,
+      selected: selectedAffiliation.value,
+    },
+    focusType: focusType.value,
+    diseases: [...diseases.value],
+    habits: { ...habits.value },
+    mealCount: mealCount.value,
+    activityLevel: activityLevel.value,
+    targetWeight: targetWeight.value,
+  } satisfies SignupResult
+
+  // API 연동 전까지 콘솔로 데이터 확인
+  console.log('[Signup] collected payload', payload)
+
+  emit('complete', payload)
 }
 
 const handleBack = () => {
