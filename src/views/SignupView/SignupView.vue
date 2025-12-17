@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import SignupFlow from '@/components/Signup/SignupFlow.vue'
+import type { SignupResult } from '@/components/Signup/SignupFlow.vue'
 
 const router = useRouter()
 
-const handleComplete = () => {
+const handleComplete = (payload: SignupResult) => {
+  console.log('[Signup] complete payload', payload)
   router.push('/')
 }
 
-const handleBack = () => {
-  router.back()
+const handleExit = () => {
+  router.push('/login')
 }
 </script>
 
 <template>
   <div class="signup-shell bg-white">
-    <SignupFlow @complete="handleComplete" @back="handleBack" />
+    <SignupFlow @complete="handleComplete" @exit="handleExit" />
   </div>
 </template>
 
