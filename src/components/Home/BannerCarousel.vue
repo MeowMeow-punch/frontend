@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="relative z-20 flex max-w-[70%] flex-col items-start">
+    <div class="relative z-20 flex max-w-[65%] flex-col items-start">
       <div class="mb-6">
         <h2 class="mb-2 text-[24px] font-bold leading-[1.3] tracking-tight md:text-[28px]">
           {{ currentBanner.title }}
