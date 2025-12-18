@@ -9,9 +9,25 @@ import RecommendedMealsCard, {
 import NutritionCard, { type NutritionItem } from '@/components/Home/NutritionCard.vue'
 import MenuShortcutCard from '@/components/Home/MenuShortcutCard.vue'
 import WeeklyAverageCard from '@/components/Home/WeeklyAverageCard.vue'
+import { useDietStore } from '@/composables/useDietStore'
+import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
 const goTo = (path: string) => router.push(path)
+const { setDraftMeal } = useDietStore()
+
+function isMealTime(value: string): value is MealTime {
+  return value === 'breakfast' || value === 'lunch' || value === 'dinner' || value === 'snack'
+}
+
+function handleRecommendedMealSelect(meal: RecommendedMeal) {
+  if (isMealTime(meal.time)) {
+    setDraftMeal({ time: meal.time, foods: meal.foods })
+    goTo('/diet/record')
+    return
+  }
+  goTo('/diet')
+}
 
 const banners: Banner[] = [
   {
@@ -155,7 +171,7 @@ const recommendedMeals: RecommendedMeal[] = [
         <div class="min-w-0 space-y-4 md:space-y-5 lg:space-y-6">
           <CalorieSummaryCard :total-calories="totalCalories" :target-calories="targetCalories" />
           <AiInsightCard :message="aiMessage" />
-          <RecommendedMealsCard :meals="recommendedMeals" @select="() => goTo('/diet')" />
+          <RecommendedMealsCard :meals="recommendedMeals" @select="handleRecommendedMealSelect" />
         </div>
 
         <div class="min-w-0 space-y-4 md:space-y-5 lg:space-y-6">

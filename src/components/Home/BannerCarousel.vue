@@ -34,8 +34,18 @@ const dragStart = ref(0)
 const dragEnd = ref(0)
 let timerId: number | undefined
 
+const fallbackBanner: Banner = {
+  id: 0,
+  title: '',
+  subtitle: '',
+  buttonText: '',
+  route: '/',
+  theme: 'green',
+  available: false,
+}
+
 const currentBanner = computed<Banner>(
-  () => props.banners[currentBannerIndex.value] ?? props.banners[0],
+  () => props.banners[currentBannerIndex.value] ?? props.banners[0] ?? fallbackBanner,
 )
 
 const goToBanner = (index: number) => {

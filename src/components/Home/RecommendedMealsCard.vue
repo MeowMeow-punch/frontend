@@ -22,7 +22,7 @@ export interface RecommendedMeal {
   foods: RecommendedFood[]
 }
 
-const props = defineProps<{
+defineProps<{
   meals: RecommendedMeal[]
 }>()
 
