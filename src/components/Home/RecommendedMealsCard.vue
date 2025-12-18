@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Plus } from 'lucide-vue-next'
+
 export interface RecommendedFood {
   id: number
   name: string
@@ -19,6 +21,9 @@ export interface RecommendedMeal {
   timeLabel: string
   calories: number
   protein: number
+  carbs?: number
+  fat?: number
+  isCafeteria?: boolean
   foods: RecommendedFood[]
 }
 
@@ -29,6 +34,23 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'select', meal: RecommendedMeal): void
 }>()
+
+function computeMacros(meal: RecommendedMeal) {
+  const computedFromFoods = meal.foods.reduce(
+    (acc, food) => ({
+      carbs: acc.carbs + food.carbs * food.quantity,
+      protein: acc.protein + food.protein * food.quantity,
+      fat: acc.fat + food.fat * food.quantity,
+    }),
+    { carbs: 0, protein: 0, fat: 0 },
+  )
+
+  return {
+    carbs: Math.round(meal.carbs ?? computedFromFoods.carbs),
+    protein: Math.round(meal.protein ?? computedFromFoods.protein),
+    fat: Math.round(meal.fat ?? computedFromFoods.fat),
+  }
+}
 </script>
 
 <template>
@@ -69,12 +91,30 @@ const emit = defineEmits<{
             >
               {{ meal.timeLabel }}
             </span>
+            <span
+              v-if="meal.isCafeteria"
+              class="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-600"
+            >
+              사내식단
+            </span>
             <span class="text-[12px] text-[var(--gray-500)]"> {{ meal.calories }} kcal </span>
           </div>
 
           <h3 class="mb-1 truncate text-[15px] font-semibold text-[var(--gray-900)]">
             {{ meal.name }}
           </h3>
+
+          <div class="mb-1 flex items-center gap-2 text-[12px] text-[var(--gray-500)]">
+            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600"
+              >탄 {{ computeMacros(meal).carbs }}g</span
+            >
+            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600"
+              >단 {{ computeMacros(meal).protein }}g</span
+            >
+            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600"
+              >지 {{ computeMacros(meal).fat }}g</span
+            >
+          </div>
 
           <p class="truncate text-[13px] text-[var(--gray-500)]">
             {{ meal.foods.map((f) => f.name).join(', ') }}
@@ -85,7 +125,7 @@ const emit = defineEmits<{
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--gray-200)] bg-[var(--gray-50)] text-[var(--gray-400)] transition-colors hover:bg-[var(--gray-100)] hover:text-[var(--gray-600)]"
           type="button"
         >
-          +
+          <Plus class="h-4 w-4" />
         </button>
       </div>
     </div>

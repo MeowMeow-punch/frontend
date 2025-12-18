@@ -69,6 +69,9 @@ const recommendedMeals: RecommendedMeal[] = [
     timeLabel: '점심',
     calories: 520,
     protein: 35,
+    carbs: 53,
+    fat: 17,
+    isCafeteria: true,
     foods: [
       {
         id: 101,
@@ -105,6 +108,8 @@ const recommendedMeals: RecommendedMeal[] = [
     timeLabel: '저녁',
     calories: 380,
     protein: 42,
+    carbs: 40,
+    fat: 7,
     foods: [
       {
         id: 201,
@@ -141,6 +146,8 @@ const recommendedMeals: RecommendedMeal[] = [
     timeLabel: '아침',
     calories: 450,
     protein: 18,
+    carbs: 75,
+    fat: 10,
     foods: [
       {
         id: 301,
