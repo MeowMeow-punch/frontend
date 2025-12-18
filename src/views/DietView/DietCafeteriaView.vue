@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Share2 } from 'lucide-vue-next'
 import CafeteriaMenuCard from '@/components/Diet/CafeteriaMenuCard.vue'
+import { isSameDay } from '@/utils/diet/dietUtils'
 
 const router = useRouter()
 const selectedDate = ref(new Date())
@@ -109,15 +110,11 @@ const menuData = {
 } as const
 
 function isSelectedDate(date: Date) {
-  return (
-    date.getDate() === selectedDate.value.getDate() &&
-    date.getMonth() === selectedDate.value.getMonth()
-  )
+  return isSameDay(date, selectedDate.value)
 }
 
 function isToday(date: Date) {
-  const today = new Date()
-  return date.getDate() === today.getDate() && date.getMonth() === today.getMonth()
+  return isSameDay(date, new Date())
 }
 </script>
 
