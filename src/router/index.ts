@@ -5,6 +5,9 @@ import AboutView from '@/views/AboutView/AboutView.vue'
 import SignupView from '@/views/SignupView/SignupView.vue'
 import LoginView from '@/views/LoginView/LoginView.vue'
 import CommunityView from '@/views/CommunityView/CommunityView.vue'
+import DietView from '@/views/DietView/DietView.vue'
+import DietRecordView from '@/views/DietView/DietRecordView.vue'
+import DietCafeteriaView from '@/views/DietView/DietCafeteriaView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,7 +42,17 @@ const router = createRouter({
     {
       path: '/diet',
       name: 'diet', // 식단 페이지
-      component: AboutView,
+      component: DietView,
+    },
+    {
+      path: '/diet/record',
+      name: 'diet-record',
+      component: DietRecordView,
+    },
+    {
+      path: '/diet/cafeteria',
+      name: 'diet-cafeteria',
+      component: DietCafeteriaView,
     },
   ],
 })

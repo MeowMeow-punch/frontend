@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Bot } from 'lucide-vue-next'
+
 defineProps<{
   message: string
 }>()
@@ -10,10 +12,10 @@ defineProps<{
       <div
         class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--gray-900)]"
       >
-        <span class="text-sm text-white">AI</span>
+        <Bot class="h-4 w-4 text-white" />
       </div>
       <div>
-        <p class="mb-1 text-[14px] font-bold text-[var(--gray-900)]">AI 분석</p>
+        <p class="mb-1 text-[14px] font-bold text-[var(--gray-900)]">AI 영양 코칭</p>
         <p class="text-[13px] text-[var(--gray-700)]">
           {{ message }}
         </p>

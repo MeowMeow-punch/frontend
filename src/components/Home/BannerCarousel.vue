@@ -34,8 +34,18 @@ const dragStart = ref(0)
 const dragEnd = ref(0)
 let timerId: number | undefined
 
+const fallbackBanner: Banner = {
+  id: 0,
+  title: '',
+  subtitle: '',
+  buttonText: '',
+  route: '/',
+  theme: 'green',
+  available: false,
+}
+
 const currentBanner = computed<Banner>(
-  () => props.banners[currentBannerIndex.value] ?? props.banners[0],
+  () => props.banners[currentBannerIndex.value] ?? props.banners[0] ?? fallbackBanner,
 )
 
 const goToBanner = (index: number) => {
@@ -184,7 +194,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="relative z-20 flex max-w-[70%] flex-col items-start">
+    <div class="relative z-20 flex max-w-[65%] flex-col items-start">
       <div class="mb-6">
         <h2 class="mb-2 text-[24px] font-bold leading-[1.3] tracking-tight md:text-[28px]">
           {{ currentBanner.title }}
