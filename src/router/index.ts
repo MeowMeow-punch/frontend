@@ -5,6 +5,7 @@ import AboutView from '@/views/AboutView/AboutView.vue'
 import SignupView from '@/views/SignupView/SignupView.vue'
 import LoginView from '@/views/LoginView/LoginView.vue'
 import CommunityView from '@/views/CommunityView/CommunityView.vue'
+import MyPageView from '@/views/MyPageView/MyPageView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,7 +35,7 @@ const router = createRouter({
     {
       path: '/mypage',
       name: 'mypage', // 마이페이지
-      component: AboutView,
+      component: MyPageView,
     },
     {
       path: '/diet',
