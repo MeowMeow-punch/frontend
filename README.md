@@ -8,6 +8,13 @@
 
 - Vue, TypeScript, Vite, Tailwind CSS
 
+### 설치 및 실행
+
+```bash
+pnpm install
+pnpm run dev
+```
+
 ### 참여자
 
 - Frontend : 전희수, 최지안
