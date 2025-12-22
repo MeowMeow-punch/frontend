@@ -1,5 +1,5 @@
 import { apiFetch } from '@/services/apiClient'
-import { mockLogin, mockLogout } from '@/mocks/auth'
+import { mockCheckNickname, mockLogin, mockLogout, mockSearchGroups } from '@/mocks/auth'
 import {
   clearTokens,
   getAccessToken,
@@ -33,22 +33,24 @@ export type BasicResponse = {
 }
 
 export type RegisterRequest = {
+  oauthProvider: OAuthProvider
+  oauthId: string
   nickname: string
-  isMarket: boolean
+  isMarketing: boolean
   gender: 'MALE' | 'FEMALE'
   height: number
   weight: number
   age: number
   allergies: string[]
-  Diseases: string[]
+  diseases: string[]
   status: 'SINGLE' | 'GROUP'
   groupId: number | null
   focus: 'HEALTHY' | 'DIET' | 'MUSCLE'
   isSmoking?: 'NONE' | 'SOMETIME' | 'OFTEN'
   isDrinking?: 'NONE' | 'SOMETIME' | 'OFTEN'
   meals?: 'ONE' | 'TWO' | 'THREE' | 'ETC'
-  activity_level?: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERYHIGH'
-  target_weight?: number
+  activityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERYHIGH'
+  targetWeight?: number
 }
 
 export type GroupOption = {
@@ -111,6 +113,10 @@ export const logout = async (): Promise<BasicResponse> => {
 }
 
 export const checkNickname = async (nickname: string): Promise<BasicResponse> => {
+  if (SHOULD_USE_MOCK) {
+    return mockCheckNickname(nickname)
+  }
+
   return apiFetch<BasicResponse>('/user/nickname', {
     method: 'GET',
     withAuth: false,
@@ -124,6 +130,11 @@ export const searchGroups = async (keyword: string): Promise<GroupOption[]> => {
   const trimmed = keyword.trim()
   if (!trimmed) {
     return []
+  }
+
+  if (SHOULD_USE_MOCK) {
+    const data = await mockSearchGroups(trimmed)
+    return Array.isArray(data.data) ? data.data : []
   }
 
   const data = await apiFetch<GroupSearchResponse>('/user/groupSearch', {

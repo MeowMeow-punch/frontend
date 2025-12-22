@@ -17,7 +17,7 @@ const mapMealCount = (count: string): RegisterRequest['meals'] => {
   return 'ETC'
 }
 
-const mapActivityLevel = (level: string): RegisterRequest['activity_level'] => {
+const mapActivityLevel = (level: string): RegisterRequest['activityLevel'] => {
   if (level === 'sedentary') return 'LOW'
   if (level === 'light') return 'MEDIUM'
   if (level === 'moderate') return 'HIGH'
@@ -39,14 +39,16 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
   const cleanedDiseases = payload.diseases.includes('없음') ? [] : payload.diseases
 
   const result: RegisterRequest = {
+    oauthProvider: 'KAKAO',
+    oauthId: `mock-kakao-${Date.now()}`,
     nickname: payload.nickname,
-    isMarket: payload.terms.marketing,
+    isMarketing: payload.terms.marketing,
     gender: mapGender(payload.userInfo.gender),
     height: Number(payload.userInfo.height),
     weight: Number(payload.userInfo.weight),
     age: Number(payload.userInfo.age),
     allergies: payload.allergies,
-    Diseases: cleanedDiseases,
+    diseases: cleanedDiseases,
     status: payload.affiliation.type === 'group' ? 'GROUP' : 'SINGLE',
     groupId,
     focus,
@@ -57,7 +59,7 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
   }
 
   if (payload.activityLevel) {
-    result.activity_level = mapActivityLevel(payload.activityLevel)
+    result.activityLevel = mapActivityLevel(payload.activityLevel)
   }
 
   if (focus === 'HEALTHY') {
@@ -66,7 +68,7 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
   }
 
   if (focus !== 'HEALTHY' && payload.targetWeight) {
-    result.target_weight = Number(payload.targetWeight)
+    result.targetWeight = Number(payload.targetWeight)
   }
 
   return result
