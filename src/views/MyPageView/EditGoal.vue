@@ -7,6 +7,7 @@ import StepHabits from '@/components/Signup/StepHabits.vue'
 import StepMealCount from '@/components/Signup/StepMealCount.vue'
 import StepActivityLevel from '@/components/Signup/StepActivityLevel.vue'
 import StepTargetWeight from '@/components/Signup/StepTargetWeight.vue'
+import { updateDiet } from '@/services/authService'
 
 type UserType = '영양관리' | '다이어트' | '체중증량'
 type FocusType = 'diet' | 'bulkup'
@@ -21,7 +22,7 @@ type Step =
 
 const emit = defineEmits<{
   (e: 'back'): void
-  (e: 'save'): void
+  (e: 'save', payload: { focus: UserType; targetWeight: string }): void
 }>()
 
 const selectedType = ref<UserType | null>(null)
@@ -32,17 +33,31 @@ const habits = ref({ smoking: '', drinking: '' })
 const mealCount = ref('')
 const activityLevel = ref('')
 const targetWeight = ref('')
+const isSaving = ref(false)
 
-const totalSteps = computed(() => (selectedType.value === '영양관리' ? 5 : 3))
+const totalSteps = computed(() => (selectedType.value === '영양관리' ? 4 : 3))
 const currentStepNumber = computed(() => {
+  if (selectedType.value === '영양관리') {
+    const stepMap: Record<Step, number> = {
+      type: 0,
+      disease: 1,
+      habits: 2,
+      mealCount: 3,
+      activity: 4,
+      activityGoal: 0,
+      targetWeight: 0,
+    }
+    return stepMap[step.value] || 0
+  }
+
   const stepMap: Record<Step, number> = {
     type: 0,
-    disease: 1,
-    habits: 2,
-    mealCount: 3,
-    activity: 4,
-    activityGoal: 1,
-    targetWeight: 2,
+    disease: 0,
+    habits: 0,
+    mealCount: 1,
+    activity: 0,
+    activityGoal: 2,
+    targetWeight: 3,
   }
   return stepMap[step.value] || 0
 })
@@ -61,7 +76,11 @@ const handleHabitsNext = (data: { smoking: string; drinking: string }) => {
 
 const handleMealCountNext = (data: string) => {
   mealCount.value = data
-  step.value = 'activity'
+  if (selectedType.value === '영양관리') {
+    step.value = 'activity'
+    return
+  }
+  step.value = 'activityGoal'
 }
 
 const handleActivityNext = (data: string) => {
@@ -81,21 +100,104 @@ const handleTargetWeightNext = (data: string) => {
 
 const handleTypeSelect = (type: UserType) => {
   selectedType.value = type
-  step.value = type === '영양관리' ? 'disease' : 'activityGoal'
+  step.value = type === '영양관리' ? 'disease' : 'mealCount'
 }
 
-const handleComplete = () => {
-  emit('save')
+const mapFocus = (type: UserType) => {
+  if (type === '다이어트') return 'DIET'
+  if (type === '체중증량') return 'MUSCLE'
+  return 'HEALTHY'
+}
+
+const mapMealCount = (count: string) => {
+  if (count === '1') return 'ONE'
+  if (count === '2') return 'TWO'
+  if (count === '3') return 'THREE'
+  return 'ETC'
+}
+
+const mapActivityLevel = (level: string) => {
+  if (level === 'low') return 'LOW'
+  if (level === 'medium') return 'MEDIUM'
+  if (level === 'high') return 'HIGH'
+  return 'VERYHIGH'
+}
+
+const mapHabit = (value: string) => {
+  if (value === 'none') return 'NONE'
+  if (value === 'sometime') return 'SOMETIME'
+  return 'OFTEN'
+}
+
+const handleComplete = async () => {
+  if (!selectedType.value) {
+    return
+  }
+
+  if (isSaving.value) {
+    return
+  }
+
+  if (!mealCount.value) {
+    alert('식사 횟수를 선택해주세요.')
+    return
+  }
+
+  if (!activityLevel.value) {
+    alert('활동량을 선택해주세요.')
+    return
+  }
+
+  let targetWeightValue: number | undefined
+  const focus = mapFocus(selectedType.value)
+  if (focus !== 'HEALTHY') {
+    const parsedTarget = Number(targetWeight.value)
+    if (!Number.isFinite(parsedTarget) || parsedTarget <= 0) {
+      alert('목표 체중을 올바르게 입력해주세요.')
+      return
+    }
+    targetWeightValue = parsedTarget
+  }
+
+  isSaving.value = true
+  try {
+    const payload = {
+      focus,
+      meals: mapMealCount(mealCount.value),
+      activityLevel: mapActivityLevel(activityLevel.value),
+      targetWeight: targetWeightValue,
+      isSmoking: focus === 'HEALTHY' ? mapHabit(habits.value.smoking) : undefined,
+      isDrinking: focus === 'HEALTHY' ? mapHabit(habits.value.drinking) : undefined,
+    }
+
+    const response = await updateDiet(payload)
+    if (response.code !== 200) {
+      alert(response.message || '목표 수정에 실패했습니다.')
+      return
+    }
+
+    emit('save', {
+      focus: selectedType.value,
+      targetWeight: targetWeight.value,
+    })
+  } catch (error) {
+    console.error('Diet update failed:', error)
+    alert('목표 수정에 실패했습니다. 잠시 후 다시 시도해주세요.')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const handleStepBack = () => {
-  if (step.value === 'disease' || step.value === 'activityGoal') {
+  if (step.value === 'disease') {
     step.value = 'type'
     selectedType.value = null
+  } else if (step.value === 'activityGoal') {
+    step.value = selectedType.value === '영양관리' ? 'type' : 'mealCount'
   } else if (step.value === 'habits') {
     step.value = 'disease'
   } else if (step.value === 'mealCount') {
-    step.value = 'habits'
+    step.value = selectedType.value === '영양관리' ? 'habits' : 'type'
   } else if (step.value === 'activity') {
     step.value = 'mealCount'
   } else if (step.value === 'targetWeight') {

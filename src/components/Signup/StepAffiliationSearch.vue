@@ -2,6 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { searchGroups } from '@/services/authService'
 
+const props = withDefaults(
+  defineProps<{
+    variant?: 'default' | 'inline'
+  }>(),
+  { variant: 'default' },
+)
+
 const emit = defineEmits<{
   (e: 'next', affiliation: { id: number; name: string }): void
 }>()
@@ -21,6 +28,26 @@ const hasQuery = computed(() => Boolean(trimmedQuery.value))
 const isQueryTooShort = computed(() => hasQuery.value && trimmedQuery.value.length < 2)
 const helperMessage = computed(() =>
   isQueryTooShort.value ? '검색어는 최소 2글자 이상이어야 합니다' : '',
+)
+const isInline = computed(() => props.variant === 'inline')
+const containerClass = computed(() => (isInline.value ? 'space-y-6' : 'space-y-12'))
+const inputClass = computed(() =>
+  [
+    'w-full border-b-2 border-[var(--gray-300)] bg-transparent px-0 transition-colors placeholder:text-[var(--gray-400)] focus:border-[var(--gray-900)] focus:outline-none',
+    isInline.value ? 'py-2 pl-7 text-[14px]' : 'py-3 pl-8 text-[18px]',
+  ].join(' '),
+)
+const resultButtonClass = computed(() =>
+  [
+    'w-full rounded-xl border-2 text-left transition-all active:scale-[0.98]',
+    isInline.value ? 'px-4 py-3 text-[14px]' : 'px-4 py-4 text-[15px]',
+  ].join(' '),
+)
+const submitButtonClass = computed(() =>
+  [
+    'w-full rounded-xl text-[16px] transition-all',
+    isInline.value ? 'h-[44px] text-[14px]' : 'h-[56px] text-[16px]',
+  ].join(' '),
 )
 
 const handleSelect = (affiliation: GroupOption) => {
@@ -74,8 +101,8 @@ watch(searchQuery, (value) => {
 </script>
 
 <template>
-  <div class="space-y-12">
-    <div>
+  <div :class="containerClass">
+    <div v-if="!isInline">
       <h1
         class="mb-3 text-[26px] leading-[1.35] tracking-[-0.03em] text-[var(--gray-900)]"
         style="font-weight: 700"
@@ -83,6 +110,11 @@ watch(searchQuery, (value) => {
         소속을 검색해주세요
       </h1>
       <p class="text-[15px] leading-[1.5] text-[var(--gray-600)]" style="font-weight: 400">
+        소속명을 입력하면 검색 결과가 나타나요
+      </p>
+    </div>
+    <div v-else>
+      <p class="text-[13px] text-[var(--gray-600)]" style="font-weight: 400">
         소속명을 입력하면 검색 결과가 나타나요
       </p>
     </div>
@@ -96,7 +128,7 @@ watch(searchQuery, (value) => {
           v-model="searchQuery"
           placeholder="소속명 검색"
           autofocus
-          class="w-full border-b-2 border-[var(--gray-300)] bg-transparent px-0 py-3 pl-8 text-[18px] transition-colors placeholder:text-[var(--gray-400)] focus:border-[var(--gray-900)] focus:outline-none"
+          :class="inputClass"
           style="font-weight: 400"
         />
       </div>
@@ -130,7 +162,7 @@ watch(searchQuery, (value) => {
             type="button"
             @click="handleSelect(affiliation)"
             :class="[
-              'w-full rounded-xl border-2 px-4 py-4 text-left text-[15px] transition-all active:scale-[0.98]',
+              resultButtonClass,
               selectedGroupId === affiliation.groupId
                 ? 'bg-[var(--gray-50)] text-[var(--gray-900)]'
                 : 'bg-[var(--gray-50)] text-[var(--gray-900)] hover:bg-[var(--gray-100)]',
@@ -158,7 +190,7 @@ watch(searchQuery, (value) => {
       :disabled="selectedGroupId === null"
       @click="handleSubmit"
       :class="[
-        'h-[56px] w-full rounded-xl text-[16px] transition-all',
+        submitButtonClass,
         selectedGroupId !== null
           ? 'text-white active:scale-[0.98]'
           : 'cursor-not-allowed bg-[var(--gray-100)] text-[var(--gray-400)]',

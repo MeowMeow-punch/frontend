@@ -22,6 +22,7 @@
 - `src/composables/useDietStore.ts`: 식단 상태/로컬 스토리지 관리
 - `src/services/apiClient.ts`: axios 공통 래퍼(토큰 주입/리프레시)
 - `src/services/authService.ts`: 로그인/회원가입/닉네임/소속 API
+- `src/services/oauthStore.ts`: 테스트용 oauthId 저장/재사용
 - `src/services/tokenStore.ts`: 토큰 저장/조회/삭제
 - `src/mocks/`: mock 응답(`auth.ts`)
 - `src/types/`: 도메인 타입(`diet.ts`, `signup.ts`, `axios.d.ts`)
@@ -55,7 +56,7 @@
 - `DietCafeteriaView`: 주간(월~금) 구내식당 메뉴 카드 리스트.
 - `CommunityView`: 전문가 칼럼 리스트, 카테고리/검색 필터.
 - `CommunityDetail`: 칼럼 상세 + 공유 모달 + 관련 글.
-- `LoginView`: 소셜 로그인 UI(현재 mock 로그인).
+- `LoginView`: 소셜 로그인 UI(카카오는 실서버 로그인 시도, 나머지는 mock).
 - `SignupView`/`SignupFlow`: 다단계 회원가입, 닉네임 중복 체크 후 단건 전송.
 - `MyPageView`: 프로필 요약 + 하위 설정 페이지 전환.
 - `EditGoal`: 목표 수정 플로우(회원가입 스텝 재사용).
@@ -75,10 +76,13 @@
 
 ## 인증/회원가입 흐름
 
-- 닉네임 중복 체크: `GET /user/nickname?nickname=...`
-- 소속 검색: `GET /user/groupSearch?keyword=...` (그룹 선택 시 `groupId` 전달)
+- 닉네임 중복 체크: `GET /user/nickname?nickname=...` (실서버 모드에서는 인증 헤더 사용)
+- 소속 검색: `GET /user/groupSearch?keyword=...` (실서버 모드에서는 인증 헤더 사용)
 - 회원가입: `POST /auth/regist` (성공 시 토큰 저장 + 홈 이동)
-- 로그인: `POST /auth/login` (현재는 mock 유지)
+- 로그인: `POST /auth/login` (카카오는 실서버 호출, 나머지는 mock)
+- 내 정보 조회: `GET /user` (마이페이지 진입 시 기본 정보 로드)
+- 개인정보 수정/닉네임 변경: `PATCH /user` (개인정보 설정 저장)
+- 식단중점 수정: `PATCH /user/diet` (목표 수정 플로우 저장)
 - 토큰 재발급: `POST /auth/refresh` (쿠키 refresh 기반, 401 시 자동 재시도)
 
 ## 환경 변수

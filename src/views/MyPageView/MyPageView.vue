@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   User,
@@ -17,7 +17,7 @@ import Dialog from '@/components/Dialog/Dialog.vue'
 import EditGoal from '@/views/MyPageView/EditGoal.vue'
 import EditProfile from '@/views/MyPageView/EditProfile.vue'
 import PrivacyPolicy from '@/views/MyPageView/PrivacyPolicy.vue'
-import { logout } from '@/services/authService'
+import { getUserProfile, logout, updateProfile } from '@/services/authService'
 
 type SubPage = 'main' | 'edit-goal' | 'edit-profile' | 'privacy'
 
@@ -26,8 +26,10 @@ const nickname = ref('건강한하루')
 const tempNickname = ref(nickname.value)
 const isEditingNickname = ref(false)
 const currentSubPage = ref<SubPage>('main')
+const progressPercentOverride = ref<number | null>(null)
+const isDev = import.meta.env.DEV
 
-const userInfo = {
+const userInfo = reactive({
   email: 'user@pickit.com',
   joinDate: '2024.11.01',
   gender: '남성',
@@ -44,30 +46,109 @@ const userInfo = {
   consecutiveDays: 7,
   thisWeekMealCount: 5,
   thisWeekTargetMealCount: 7,
-} as const
+  marketingConsent: false,
+})
+
+const mapFocusLabel = (focus: string) => {
+  if (focus === 'DIET') return '다이어트'
+  if (focus === 'MUSCLE') return '체중증량'
+  return '영양관리'
+}
+
+const mapGenderLabel = (gender: string) => (gender === 'MALE' ? '남성' : '여성')
 
 const isWeightFocused = computed(
   () => userInfo.userType === '다이어트' || userInfo.userType === '체중증량',
 )
 const weightChange = computed(() => userInfo.currentWeight - userInfo.startWeight)
-const progressPercentage = computed(
-  () =>
-    ((userInfo.startWeight - userInfo.currentWeight) /
-      (userInfo.startWeight - userInfo.targetWeight)) *
-    100,
-)
-const weeklyMealRate = computed(
-  () => (userInfo.thisWeekMealCount / userInfo.thisWeekTargetMealCount) * 100,
-)
+const progressPercentage = computed(() => {
+  if (progressPercentOverride.value !== null) {
+    return progressPercentOverride.value
+  }
+  const denominator = userInfo.startWeight - userInfo.targetWeight
+  if (!denominator) {
+    return 0
+  }
+  return ((userInfo.startWeight - userInfo.currentWeight) / denominator) * 100
+})
+const weeklyMealRate = computed(() => {
+  if (!userInfo.thisWeekTargetMealCount) {
+    return 0
+  }
+  return (userInfo.thisWeekMealCount / userInfo.thisWeekTargetMealCount) * 100
+})
 
 const handleNicknameUpdate = () => {
-  nickname.value = tempNickname.value
-  isEditingNickname.value = false
+  const nextNickname = tempNickname.value.trim()
+  if (nextNickname.length < 2 || nextNickname.length > 10) {
+    return
+  }
+
+  updateProfile({ nickname: nextNickname })
+    .then((response) => {
+      if (isDev) {
+        console.info('[MyPage] nickname update response', response)
+      }
+      if (response.code === 200) {
+        nickname.value = nextNickname
+        tempNickname.value = nextNickname
+        isEditingNickname.value = false
+        return
+      }
+
+      alert(response.message || '닉네임 변경에 실패했습니다.')
+    })
+    .catch((error) => {
+      console.error('Nickname update failed:', error)
+      alert('닉네임 변경에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    })
 }
 
 const handleSaveSubPage = () => {
   currentSubPage.value = 'main'
 }
+
+const handleProfileSave = (profile: {
+  nickname: string
+  gender: string
+  height: number
+  weight: number
+  age: number
+  group: string
+  allergies: string[]
+  marketingConsent: boolean
+}) => {
+  nickname.value = profile.nickname
+  tempNickname.value = profile.nickname
+  userInfo.gender = profile.gender
+  userInfo.height = profile.height
+  userInfo.currentWeight = profile.weight
+  userInfo.age = profile.age
+  userInfo.group = profile.group
+  userInfo.allergies = [...profile.allergies]
+  userInfo.marketingConsent = profile.marketingConsent
+  currentSubPage.value = 'main'
+}
+
+const handleGoalSave = (payload: { focus: string; targetWeight: string }) => {
+  userInfo.userType = payload.focus
+  if (payload.targetWeight) {
+    userInfo.targetWeight = Number(payload.targetWeight)
+  }
+  currentSubPage.value = 'main'
+}
+
+const profileSnapshot = computed(() => ({
+  nickname: nickname.value,
+  email: userInfo.email,
+  gender: userInfo.gender,
+  height: String(userInfo.height),
+  weight: String(userInfo.currentWeight),
+  age: String(userInfo.age),
+  group: userInfo.group,
+  allergies: userInfo.allergies,
+  marketingConsent: userInfo.marketingConsent,
+}))
 
 const handleLogout = async () => {
   try {
@@ -84,18 +165,73 @@ const handleDeleteAccount = () => {
     console.log('회원 탈퇴')
   }
 }
+
+const loadUserProfile = async () => {
+  try {
+    if (isDev) {
+      console.info('[MyPage] load user profile')
+    }
+    const response = await getUserProfile()
+    if (isDev) {
+      console.info('[MyPage] user profile response', response)
+    }
+    const apiInfo = response.data?.userProfile
+    const basicInfo = response.data?.basicInfo
+    const activitySummary = response.data?.activitySummary
+    if (!apiInfo || !basicInfo) {
+      return
+    }
+
+    nickname.value = apiInfo.nickname
+    tempNickname.value = apiInfo.nickname
+    userInfo.gender = mapGenderLabel(basicInfo.gender)
+    userInfo.height = basicInfo.height
+    userInfo.age = basicInfo.age
+    userInfo.group = apiInfo.groupName ?? ''
+    userInfo.userType = mapFocusLabel(apiInfo.focus)
+    userInfo.currentWeight = basicInfo.weight
+    userInfo.allergies = Array.isArray(basicInfo.allergies) ? basicInfo.allergies : []
+    if (apiInfo.createdAt) {
+      userInfo.joinDate = apiInfo.createdAt
+    }
+
+    const streakInfo = activitySummary?.streak
+    const weeklyDietInfo = activitySummary?.weeklyDiet
+    userInfo.consecutiveDays = typeof streakInfo?.count === 'number' ? streakInfo.count : 0
+    userInfo.totalRecordDays = typeof streakInfo?.total === 'number' ? streakInfo.total : 0
+    userInfo.thisWeekMealCount =
+      typeof weeklyDietInfo?.count === 'number' ? weeklyDietInfo.count : 0
+    userInfo.thisWeekTargetMealCount =
+      typeof weeklyDietInfo?.goal === 'number' ? weeklyDietInfo.goal : 0
+    if (isDev) {
+      console.info('[MyPage] user profile mapped', {
+        nickname: nickname.value,
+        gender: userInfo.gender,
+        height: userInfo.height,
+        age: userInfo.age,
+        group: userInfo.group,
+        userType: userInfo.userType,
+      })
+    }
+  } catch (error) {
+    console.error('User profile load failed:', error)
+  }
+}
+
+onMounted(loadUserProfile)
 </script>
 
 <template>
   <EditGoal
     v-if="currentSubPage === 'edit-goal'"
     @back="currentSubPage = 'main'"
-    @save="handleSaveSubPage"
+    @save="handleGoalSave"
   />
   <EditProfile
     v-else-if="currentSubPage === 'edit-profile'"
+    :profile="profileSnapshot"
     @back="currentSubPage = 'main'"
-    @save="handleSaveSubPage"
+    @save="handleProfileSave"
   />
   <PrivacyPolicy v-else-if="currentSubPage === 'privacy'" @back="currentSubPage = 'main'" />
 
@@ -210,6 +346,7 @@ const handleDeleteAccount = () => {
       </div>
 
       <div class="mb-6 rounded-2xl bg-[var(--gray-50)] p-6">
+        <!-- TODO: replace activity summary values once diet stats API is wired -->
         <h2 class="mb-4 text-[17px] text-[var(--gray-900)]" style="font-weight: 700">활동 통계</h2>
 
         <div class="grid grid-cols-2 gap-4 md:grid-cols-4">

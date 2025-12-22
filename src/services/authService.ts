@@ -67,6 +67,57 @@ export type GroupSearchResponse = {
   data: GroupOption[]
 }
 
+export type UserProfileResponse = {
+  code: number
+  message: string
+  data: {
+    userProfile: {
+      userId: string
+      nickname: string
+      focus: 'HEALTHY' | 'DIET' | 'MUSCLE'
+      groupName?: string | null
+      createdAt?: string
+    }
+    basicInfo: {
+      age: number
+      gender: 'MALE' | 'FEMALE'
+      height: number
+      weight: number
+      allergies: string[]
+    }
+    activitySummary?: {
+      streak?: {
+        count?: number
+        total?: number
+      }
+      weeklyDiet?: {
+        count?: number
+        goal?: number
+      }
+    }
+  }
+}
+
+export type UpdateProfileRequest = {
+  nickname?: string
+  groupId?: string
+  gender?: 'MALE' | 'FEMALE'
+  height?: number
+  weight?: number
+  age?: number
+  allergies?: string[]
+  isMarketing?: boolean
+}
+
+export type UpdateDietRequest = {
+  focus: 'HEALTHY' | 'DIET' | 'MUSCLE'
+  meals: 'ONE' | 'TWO' | 'THREE' | 'ETC'
+  activityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERYHIGH'
+  isSmoking?: 'NONE' | 'SOMETIME' | 'OFTEN'
+  isDrinking?: 'NONE' | 'SOMETIME' | 'OFTEN'
+  targetWeight?: number
+}
+
 const AUTH_MOCK_OVERRIDE = import.meta.env.VITE_AUTH_MOCK
 const SHOULD_USE_MOCK =
   AUTH_MOCK_OVERRIDE === 'true'
@@ -163,6 +214,33 @@ export const searchGroups = async (keyword: string): Promise<GroupOption[]> => {
   })
 
   return Array.isArray(data.data) ? data.data : []
+}
+
+export const getUserProfile = async (): Promise<UserProfileResponse> => {
+  return apiFetch<UserProfileResponse>('/user', {
+    method: 'GET',
+    withAuth: true,
+    errorMessage: 'User profile fetch failed.',
+  })
+}
+
+export const updateProfile = async (payload: UpdateProfileRequest): Promise<BasicResponse> => {
+  return apiFetch<BasicResponse>('/user', {
+    method: 'PATCH',
+    withAuth: true,
+    body: payload,
+    acceptStatuses: [409],
+    errorMessage: 'Profile update failed.',
+  })
+}
+
+export const updateDiet = async (payload: UpdateDietRequest): Promise<BasicResponse> => {
+  return apiFetch<BasicResponse>('/user/diet', {
+    method: 'PATCH',
+    withAuth: true,
+    body: payload,
+    errorMessage: 'Diet update failed.',
+  })
 }
 
 export const register = async (payload: RegisterRequest): Promise<LoginResponse> => {
