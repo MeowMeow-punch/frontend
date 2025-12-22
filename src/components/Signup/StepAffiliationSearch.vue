@@ -1,37 +1,64 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { searchGroups } from '@/services/authService'
 
 const emit = defineEmits<{
-  (e: 'next', affiliation: string): void
+  (e: 'next', affiliation: { id: number; name: string }): void
 }>()
 
-const affiliations = [
-  'SSAFY 12기',
-  '삼성전자',
-  'SK하이닉스',
-  'LG전자',
-  '네이버',
-  '카카오',
-  'LINE',
-  '쿠팡',
-  '배달의민족',
-  '토스',
-]
+type GroupOption = { groupId: number; groupName: string }
 
 const searchQuery = ref('')
-const selectedAffiliation = ref('')
+const results = ref<GroupOption[]>([])
+const selectedGroupId = ref<number | null>(null)
+const selectedGroupName = ref('')
+const isLoading = ref(false)
+const error = ref('')
+let debounceId: number | undefined
 
-const filteredAffiliations = computed(() =>
-  affiliations.filter((affiliation) =>
-    affiliation.toLowerCase().includes(searchQuery.value.toLowerCase()),
-  ),
-)
+const hasQuery = computed(() => Boolean(searchQuery.value.trim()))
+
+const handleSelect = (affiliation: GroupOption) => {
+  selectedGroupId.value = affiliation.groupId
+  selectedGroupName.value = affiliation.groupName
+}
 
 const handleSubmit = () => {
-  if (selectedAffiliation.value) {
-    emit('next', selectedAffiliation.value)
+  if (selectedGroupId.value !== null) {
+    emit('next', { id: selectedGroupId.value, name: selectedGroupName.value })
   }
 }
+
+watch(searchQuery, (value) => {
+  const query = value.trim()
+
+  if (debounceId) {
+    clearTimeout(debounceId)
+    debounceId = undefined
+  }
+
+  error.value = ''
+  selectedGroupId.value = null
+  selectedGroupName.value = ''
+
+  if (!query) {
+    results.value = []
+    return
+  }
+
+  debounceId = window.setTimeout(async () => {
+    isLoading.value = true
+    try {
+      results.value = await searchGroups(query)
+    } catch (err) {
+      console.error('Group search failed:', err)
+      error.value = '검색에 실패했습니다. 잠시 후 다시 시도해주세요'
+      results.value = []
+    } finally {
+      isLoading.value = false
+    }
+  }, 300)
+})
 </script>
 
 <template>
@@ -62,25 +89,39 @@ const handleSubmit = () => {
         />
       </div>
 
-      <div v-if="searchQuery" class="mt-6 space-y-2">
-        <template v-if="filteredAffiliations.length">
+      <div v-if="hasQuery" class="mt-6 space-y-2">
+        <div
+          v-if="isLoading"
+          class="py-6 text-center text-[14px] text-[var(--gray-400)]"
+          style="font-weight: 400"
+        >
+          검색 중...
+        </div>
+        <div
+          v-else-if="error"
+          class="py-6 text-center text-[14px] text-[var(--error-300)]"
+          style="font-weight: 400"
+        >
+          {{ error }}
+        </div>
+        <template v-else-if="results.length">
           <button
-            v-for="affiliation in filteredAffiliations"
-            :key="affiliation"
+            v-for="affiliation in results"
+            :key="affiliation.groupId"
             type="button"
-            @click="selectedAffiliation = affiliation"
+            @click="handleSelect(affiliation)"
             :class="[
               'w-full rounded-xl border-2 px-4 py-4 text-left text-[15px] transition-all active:scale-[0.98]',
-              selectedAffiliation === affiliation
+              selectedGroupId === affiliation.groupId
                 ? 'bg-[var(--gray-50)] text-[var(--gray-900)]'
                 : 'bg-[var(--gray-50)] text-[var(--gray-900)] hover:bg-[var(--gray-100)]',
             ]"
             :style="{
               fontWeight: 600,
-              borderColor: selectedAffiliation === affiliation ? '#00C73C' : 'var(--gray-300)',
+              borderColor: selectedGroupId === affiliation.groupId ? '#00C73C' : 'var(--gray-300)',
             }"
           >
-            {{ affiliation }}
+            {{ affiliation.groupName }}
           </button>
         </template>
         <div
@@ -95,17 +136,17 @@ const handleSubmit = () => {
 
     <button
       type="button"
-      :disabled="!selectedAffiliation"
+      :disabled="selectedGroupId === null"
       @click="handleSubmit"
       :class="[
         'h-[56px] w-full rounded-xl text-[16px] transition-all',
-        selectedAffiliation
+        selectedGroupId !== null
           ? 'text-white active:scale-[0.98]'
           : 'cursor-not-allowed bg-[var(--gray-100)] text-[var(--gray-400)]',
       ]"
       :style="{
         fontWeight: 600,
-        backgroundColor: selectedAffiliation ? '#00C73C' : undefined,
+        backgroundColor: selectedGroupId !== null ? '#00C73C' : undefined,
       }"
     >
       다음
