@@ -22,7 +22,7 @@ type Step =
 
 const emit = defineEmits<{
   (e: 'back'): void
-  (e: 'save', payload: { focus: UserType; targetWeight: string; activityLevel: string }): void
+  (e: 'save', payload: { focus: UserType; targetWeight: string }): void
 }>()
 
 const selectedType = ref<UserType | null>(null)
@@ -138,15 +138,34 @@ const handleComplete = async () => {
     return
   }
 
+  if (!mealCount.value) {
+    alert('식사 횟수를 선택해주세요.')
+    return
+  }
+
+  if (!activityLevel.value) {
+    alert('활동량을 선택해주세요.')
+    return
+  }
+
+  let targetWeightValue: number | undefined
+  const focus = mapFocus(selectedType.value)
+  if (focus !== 'HEALTHY') {
+    const parsedTarget = Number(targetWeight.value)
+    if (!Number.isFinite(parsedTarget) || parsedTarget <= 0) {
+      alert('목표 체중을 올바르게 입력해주세요.')
+      return
+    }
+    targetWeightValue = parsedTarget
+  }
+
   isSaving.value = true
   try {
-    const focus = mapFocus(selectedType.value)
     const payload = {
       focus,
       meals: mapMealCount(mealCount.value),
       activityLevel: mapActivityLevel(activityLevel.value),
-      targetWeight:
-        focus !== 'HEALTHY' && targetWeight.value ? Number(targetWeight.value) : undefined,
+      targetWeight: targetWeightValue,
       isSmoking: focus === 'HEALTHY' ? mapHabit(habits.value.smoking) : undefined,
       isDrinking: focus === 'HEALTHY' ? mapHabit(habits.value.drinking) : undefined,
     }
@@ -160,7 +179,6 @@ const handleComplete = async () => {
     emit('save', {
       focus: selectedType.value,
       targetWeight: targetWeight.value,
-      activityLevel: activityLevel.value,
     })
   } catch (error) {
     console.error('Diet update failed:', error)

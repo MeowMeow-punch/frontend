@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { ArrowLeft, Check, X } from 'lucide-vue-next'
 import { updateProfile } from '@/services/authService'
 import StepAffiliationSearch from '@/components/Signup/StepAffiliationSearch.vue'
@@ -113,20 +113,65 @@ const handleClearGroup = () => {
 
 const mapGenderToApi = (gender: string) => (gender === '남성' ? 'MALE' : 'FEMALE')
 
+const getNumberError = (value: string, label: string) => {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return `${label}는 0보다 커야 합니다.`
+  }
+
+  return ''
+}
+
+const heightError = computed(() => getNumberError(formData.height, '키'))
+const weightError = computed(() => getNumberError(formData.weight, '체중'))
+const ageError = computed(() => getNumberError(formData.age, '나이'))
+
 const handleSave = async () => {
   if (isSaving.value) {
     return
   }
 
+  const trimmedNickname = formData.nickname.trim()
+  if (!trimmedNickname || trimmedNickname.length < 2 || trimmedNickname.length > 10) {
+    alert('닉네임은 2~10자로 입력해주세요.')
+    return
+  }
+
+  if (!formData.gender) {
+    alert('성별을 선택해주세요.')
+    return
+  }
+
+  const heightValue = Number(formData.height)
+  if (!Number.isFinite(heightValue) || heightValue <= 0) {
+    alert('키를 올바르게 입력해주세요.')
+    return
+  }
+
+  const weightValue = Number(formData.weight)
+  if (!Number.isFinite(weightValue) || weightValue <= 0) {
+    alert('몸무게를 올바르게 입력해주세요.')
+    return
+  }
+
+  const ageValue = Number(formData.age)
+  if (!Number.isFinite(ageValue) || ageValue <= 0) {
+    alert('나이를 올바르게 입력해주세요.')
+    return
+  }
+
   isSaving.value = true
   try {
-    const trimmedNickname = formData.nickname.trim()
     const profilePayload = {
-      nickname: trimmedNickname || undefined,
+      nickname: trimmedNickname !== props.profile.nickname ? trimmedNickname : undefined,
       gender: mapGenderToApi(formData.gender),
-      height: Number(formData.height),
-      weight: Number(formData.weight),
-      age: Number(formData.age),
+      height: heightValue,
+      weight: weightValue,
+      age: ageValue,
       allergies: [...formData.allergies],
       isMarketing: formData.marketingConsent,
       groupId: formData.groupId ? String(formData.groupId) : undefined,
@@ -142,11 +187,11 @@ const handleSave = async () => {
     }
 
     emit('save', {
-      nickname: trimmedNickname || formData.nickname,
+      nickname: trimmedNickname,
       gender: formData.gender,
-      height: Number(formData.height),
-      weight: Number(formData.weight),
-      age: Number(formData.age),
+      height: heightValue,
+      weight: weightValue,
+      age: ageValue,
       group: formData.group,
       allergies: [...formData.allergies],
       marketingConsent: formData.marketingConsent,
@@ -323,6 +368,7 @@ const handleSave = async () => {
                   id="height"
                   v-model="formData.height"
                   type="number"
+                  min="1"
                   class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 pr-10 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
                 />
                 <span
@@ -332,6 +378,13 @@ const handleSave = async () => {
                   cm
                 </span>
               </div>
+              <p
+                v-if="heightError"
+                class="text-[12px] text-[var(--error-300)]"
+                style="font-weight: 400"
+              >
+                {{ heightError }}
+              </p>
             </div>
 
             <div class="space-y-2">
@@ -346,6 +399,7 @@ const handleSave = async () => {
                   id="weight"
                   v-model="formData.weight"
                   type="number"
+                  min="1"
                   class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 pr-10 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
                 />
                 <span
@@ -355,6 +409,13 @@ const handleSave = async () => {
                   kg
                 </span>
               </div>
+              <p
+                v-if="weightError"
+                class="text-[12px] text-[var(--error-300)]"
+                style="font-weight: 400"
+              >
+                {{ weightError }}
+              </p>
             </div>
 
             <div class="space-y-2">
@@ -366,6 +427,7 @@ const handleSave = async () => {
                   id="age"
                   v-model="formData.age"
                   type="number"
+                  min="1"
                   class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 pr-10 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
                 />
                 <span
@@ -375,6 +437,13 @@ const handleSave = async () => {
                   세
                 </span>
               </div>
+              <p
+                v-if="ageError"
+                class="text-[12px] text-[var(--error-300)]"
+                style="font-weight: 400"
+              >
+                {{ ageError }}
+              </p>
             </div>
           </div>
         </div>

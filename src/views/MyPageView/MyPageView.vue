@@ -130,11 +130,7 @@ const handleProfileSave = (profile: {
   currentSubPage.value = 'main'
 }
 
-const handleGoalSave = (payload: {
-  focus: string
-  targetWeight: string
-  activityLevel: string
-}) => {
+const handleGoalSave = (payload: { focus: string; targetWeight: string }) => {
   userInfo.userType = payload.focus
   if (payload.targetWeight) {
     userInfo.targetWeight = Number(payload.targetWeight)
