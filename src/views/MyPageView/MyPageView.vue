@@ -17,6 +17,7 @@ import Dialog from '@/components/Dialog/Dialog.vue'
 import EditGoal from '@/views/MyPageView/EditGoal.vue'
 import EditProfile from '@/views/MyPageView/EditProfile.vue'
 import PrivacyPolicy from '@/views/MyPageView/PrivacyPolicy.vue'
+import { logout } from '@/services/authService'
 
 type SubPage = 'main' | 'edit-goal' | 'edit-profile' | 'privacy'
 
@@ -68,8 +69,14 @@ const handleSaveSubPage = () => {
   currentSubPage.value = 'main'
 }
 
-const handleLogout = () => {
-  router.push('/login')
+const handleLogout = async () => {
+  try {
+    await logout()
+  } catch (error) {
+    console.error('Logout failed:', error)
+  } finally {
+    router.push('/login')
+  }
 }
 
 const handleDeleteAccount = () => {
