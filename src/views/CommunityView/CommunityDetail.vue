@@ -1,30 +1,58 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ArrowLeft, Heart, User, Share2, Link, MessageCircle, Twitter } from 'lucide-vue-next'
+import type { CommunityDetailPost, CommunityRelatedPost } from '@/types/community'
 
-type Article = {
-  id: number
-  category: string
-  title: string
-  author: string
-  date: string
-  views: number
-  likes: number
-  thumbnail: string
-  summary: string
-  readTime: string
-}
-
-const props = defineProps<{ article: Article }>()
+const props = defineProps<{
+  detail: {
+    post: CommunityDetailPost
+    relatedPosts: CommunityRelatedPost[]
+  }
+}>()
 const emit = defineEmits<{
   (event: 'back'): void
-  (event: 'select-article', article: Article): void
+  (event: 'select-related', postId: number): void
 }>()
 
 const isShareOpen = ref(false)
 const isMobile = ref(false)
 const fallbackThumbnail =
   'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80'
+
+const categoryLabelMap: Record<string, string> = {
+  DIET: '다이어트',
+  EXERISE: '운동',
+  NUTRIENT: '영양',
+  DISEASE: '질병관리',
+  all: '전체',
+}
+
+const formatDate = (isoString: string) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return isoString
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}.${month}.${day}`
+}
+
+const estimatedReadTime = computed(() => {
+  const content = props.detail.post?.content ?? ''
+  const plainText = content.replace(/<[^>]+>/g, ' ')
+  const words = plainText.trim().split(/\s+/).filter(Boolean).length
+  const minutes = Math.max(1, Math.ceil(words / 200))
+  return `${minutes}분`
+})
+
+const article = computed(() => props.detail.post)
+const relatedArticles = computed(() => props.detail.relatedPosts ?? [])
+const categoryLabel = computed(
+  () => categoryLabelMap[String(article.value.category)] ?? article.value.category,
+)
+const createdAt = computed(() => formatDate(article.value.createdAt))
+const content = computed(() => article.value.content || '')
+const formatCategory = (code: string) => categoryLabelMap[String(code)] ?? code
 
 const handleResize = () => {
   if (typeof window !== 'undefined') {
@@ -41,63 +69,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-const content = computed(
-  () => `
-    <p>건강한 식단 관리는 단순히 칼로리를 계산하는 것을 넘어서, 우리 몸에 필요한 영양소를 균형있게 섭취하는 것을 의미합니다.</p>
-    
-    <h3>1. ${props.article.category === '영양' ? '단백질의 중요성' : '건강한 식습관의 시작'}</h3>
-    <p>단백질은 우리 몸의 근육, 뼈, 피부를 구성하는 필수 영양소입니다. 하지만 무조건 많이 섭취한다고 좋은 것은 아닙니다. 개인의 체중, 활동량, 건강 상태에 따라 적절한 양을 섭취하는 것이 중요합니다.</p>
-    
-    <p>일반적으로 성인의 경우 체중 1kg당 0.8~1.2g의 단백질 섭취가 권장됩니다. 운동을 많이 하는 분들은 1.6~2.2g까지 섭취할 수 있습니다.</p>
-    
-    <h3>2. 양질의 단백질 선택하기</h3>
-    <p>단백질의 양만큼 중요한 것이 질입니다. 다음과 같은 양질의 단백질 급원을 선택하세요:</p>
-    
-    <ul>
-      <li><strong>동물성 단백질:</strong> 닭가슴살, 생선, 계란, 저지방 유제품</li>
-      <li><strong>식물성 단백질:</strong> 콩, 두부, 렌틸콩, 퀴노아</li>
-      <li><strong>보충제:</strong> 필요시 단백질 파우더 활용 (과도한 섭취는 주의)</li>
-    </ul>
-    
-    <h3>3. 단백질 과다 섭취의 위험성</h3>
-    <p>과도한 단백질 섭취는 신장에 부담을 줄 수 있으며, 칼슘 배출을 증가시켜 뼈 건강에 악영향을 미칠 수 있습니다. 특히 신장 질환이 있는 분들은 단백질 섭취량을 제한해야 합니다.</p>
-    
-    <h3>4. 균형잡힌 식단이 답입니다</h3>
-    <p>단백질만 집중하기보다는 탄수화물, 지방, 비타민, 미네랄을 모두 고려한 균형잡힌 식단을 구성하는 것이 가장 중요합니다.</p>
-    
-    <p>건강한 식습관은 하루아침에 만들어지지 않습니다. 작은 변화부터 시작해서 꾸준히 실천하는 것이 중요합니다.</p>
-  `,
-)
-
-const relatedArticles = ref<Article[]>([
-  {
-    id: 5,
-    category: '영양',
-    title: '탄수화물, 적으로만 생각하지 마세요',
-    author: '정영양 영양사',
-    date: '2024.11.10',
-    views: 8920,
-    likes: 650,
-    thumbnail:
-      'https://images.unsplash.com/photo-1642497393790-c5751b818e1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwZm9vZCUyMGluZ3JlZGllbnRzfGVufDF8fHx8MTc2MzI4NjA2OHww&ixlib=rb-4.1.0&q=80&w=1080',
-    summary: '탄수화물은 우리 몸의 주요 에너지원입니다. 올바른 탄수화물 선택 방법을 알아보세요.',
-    readTime: '4분',
-  },
-  {
-    id: 6,
-    category: '운동',
-    title: '근력운동과 영양의 완벽한 조합',
-    author: '강트레이너',
-    date: '2024.11.09',
-    views: 11200,
-    likes: 890,
-    thumbnail:
-      'https://images.unsplash.com/photo-1666819691716-827f78d892f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbWVhbCUyMGJvd2x8ZW58MXx8fHwxNzYzMjc3MjgzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    summary: '근력운동 효과를 극대화하는 식단 관리법을 소개합니다.',
-    readTime: '6분',
-  },
-])
-
 const shareOptions = [
   { name: '링크 복사', icon: Link, color: 'bg-gray-100 text-gray-900' },
   { name: '카카오톡', icon: MessageCircle, color: 'bg-[#FEE500] text-[#000000]' },
@@ -108,8 +79,8 @@ const handleImageError = (event: Event) => {
   ;(event.target as HTMLImageElement).src = fallbackThumbnail
 }
 
-const selectRelated = (article: Article) => {
-  emit('select-article', article)
+const selectRelated = (relatedArticle: CommunityRelatedPost) => {
+  emit('select-related', relatedArticle.postId)
 }
 
 const handleShareOption = (optionName: string) => {
@@ -147,18 +118,22 @@ const handleShareOption = (optionName: string) => {
       <div class="mb-8 text-center md:mb-10">
         <div class="mb-4 flex items-center justify-center gap-2">
           <span class="text-[14px] font-semibold text-[#00C73C]">
-            {{ props.article.category }}
+            {{ categoryLabel }}
           </span>
           <span class="h-1 w-1 rounded-full bg-[var(--gray-300)]" />
           <span class="text-[14px] text-[var(--gray-500)]">
-            {{ props.article.date }}
+            {{ createdAt }}
+          </span>
+          <span class="h-1 w-1 rounded-full bg-[var(--gray-300)]" />
+          <span class="text-[14px] text-[var(--gray-500)]">
+            {{ estimatedReadTime }}
           </span>
         </div>
 
         <h1
           class="mb-6 break-keep text-[26px] font-bold leading-[1.3] text-[var(--gray-900)] md:text-[32px]"
         >
-          {{ props.article.title }}
+          {{ article.title }}
         </h1>
 
         <div class="flex items-center justify-center gap-3">
@@ -169,7 +144,7 @@ const handleShareOption = (optionName: string) => {
           </div>
           <div class="text-left">
             <p class="text-[14px] font-semibold text-[var(--gray-900)]">
-              {{ props.article.author }}
+              {{ article.writer }}
             </p>
             <p class="text-[12px] text-[var(--gray-500)]">전문 에디터</p>
           </div>
@@ -180,8 +155,8 @@ const handleShareOption = (optionName: string) => {
         class="mb-10 aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--gray-100)] shadow-sm"
       >
         <img
-          :src="props.article.thumbnail"
-          :alt="props.article.title"
+          :src="article.thumbnailUrl"
+          :alt="article.title"
           class="h-full w-full object-cover"
           @error="handleImageError"
         />
@@ -203,7 +178,7 @@ const handleShareOption = (optionName: string) => {
             <Heart class="h-7 w-7 fill-current transition-colors" />
           </div>
           <span class="text-[13px] text-[var(--gray-500)] group-hover:text-[var(--gray-900)]">
-            {{ props.article.likes.toLocaleString() }}
+            {{ article.likes.toLocaleString() }}
           </span>
         </button>
       </div>
@@ -213,13 +188,13 @@ const handleShareOption = (optionName: string) => {
         <div class="grid gap-6">
           <div
             v-for="relatedArticle in relatedArticles"
-            :key="relatedArticle.id"
+            :key="relatedArticle.postId"
             @click="selectRelated(relatedArticle)"
             class="group flex cursor-pointer items-center gap-5"
           >
             <div class="min-w-0 flex-1">
               <span class="mb-1 block text-[12px] font-semibold text-[#00C73C]">
-                {{ relatedArticle.category }}
+                {{ formatCategory(relatedArticle.category) }}
               </span>
               <h3
                 class="mb-1 text-[16px] font-bold text-[var(--gray-900)] decoration-[var(--gray-300)] underline-offset-4 group-hover:underline"
@@ -227,12 +202,12 @@ const handleShareOption = (optionName: string) => {
                 {{ relatedArticle.title }}
               </h3>
               <p class="line-clamp-1 text-[14px] text-[var(--gray-500)]">
-                {{ relatedArticle.summary }}
+                {{ relatedArticle.previewText }}
               </p>
             </div>
             <div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--gray-100)]">
               <img
-                :src="relatedArticle.thumbnail"
+                :src="relatedArticle.thumbnailUrl"
                 :alt="relatedArticle.title"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 @error="handleImageError"
