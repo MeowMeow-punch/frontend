@@ -14,6 +14,7 @@ import StepNickname from './StepNickname.vue'
 import StepTargetWeight from './StepTargetWeight.vue'
 import StepTerms from './StepTerms.vue'
 import StepWelcome from './StepWelcome.vue'
+import type { FocusType, SignupResult } from '@/types/signup'
 
 type SignupStep =
   | 'nickname'
@@ -30,8 +31,6 @@ type SignupStep =
   | 'activityGoal'
   | 'targetWeight'
   | 'welcome'
-
-type FocusType = 'nutrition' | 'diet' | 'bulkup' | null
 
 const emit = defineEmits<{
   (e: 'complete', payload: SignupResult): void
@@ -55,26 +54,12 @@ const userInfo = ref({
 })
 const allergies = ref<string[]>([])
 const affiliationType = ref<'individual' | 'group'>('individual')
-const selectedAffiliation = ref('')
+const selectedAffiliation = ref<{ id: number; name: string } | null>(null)
 const diseases = ref<string[]>([])
 const habits = ref({ smoking: '', drinking: '' })
 const mealCount = ref('')
 const activityLevel = ref('')
 const targetWeight = ref('')
-
-export type SignupResult = {
-  nickname: string
-  terms: typeof termsAccepted.value
-  userInfo: typeof userInfo.value
-  allergies: string[]
-  affiliation: { type: typeof affiliationType.value; selected: string }
-  focusType: FocusType
-  diseases: string[]
-  habits: typeof habits.value
-  mealCount: string
-  activityLevel: string
-  targetWeight: string
-}
 
 const stepOrder = computed<SignupStep[]>(() => {
   const order: SignupStep[] = ['nickname', 'terms', 'info', 'allergies', 'affiliation']
@@ -141,10 +126,13 @@ const handleAllergiesNext = (values: string[]) => {
 
 const handleAffiliationNext = (type: 'individual' | 'group') => {
   affiliationType.value = type
+  if (type === 'individual') {
+    selectedAffiliation.value = null
+  }
   step.value = type === 'individual' ? 'focus' : 'affiliationSearch'
 }
 
-const handleAffiliationSearchNext = (affiliation: string) => {
+const handleAffiliationSearchNext = (affiliation: { id: number; name: string }) => {
   selectedAffiliation.value = affiliation
   step.value = 'focus'
 }
@@ -205,9 +193,6 @@ const handleWelcomeComplete = () => {
     activityLevel: activityLevel.value,
     targetWeight: targetWeight.value,
   } satisfies SignupResult
-
-  // API 연동 전까지 콘솔로 데이터 확인
-  console.log('[Signup] collected payload', payload)
 
   emit('complete', payload)
 }

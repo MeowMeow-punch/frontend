@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { checkNickname } from '@/services/authService'
 
 const emit = defineEmits<{
   (e: 'next', nickname: string): void
@@ -8,6 +9,7 @@ const emit = defineEmits<{
 const nickname = ref('')
 const error = ref('')
 const hasAttempted = ref(false)
+const isChecking = ref(false)
 
 const validateNickname = (value: string): string => {
   if (!value) return '닉네임을 입력해주세요'
@@ -33,23 +35,41 @@ const isValid = computed(() => {
   return !validateNickname(nickname.value)
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   hasAttempted.value = true
   const errorMsg = validateNickname(nickname.value)
 
-  if (!errorMsg) {
-    emit('next', nickname.value)
-  } else {
+  if (errorMsg) {
     error.value = errorMsg
+    return
+  }
+
+  if (isChecking.value) {
+    return
+  }
+
+  isChecking.value = true
+  try {
+    const response = await checkNickname(nickname.value)
+    if (response.code === 200) {
+      console.log('[Signup] nickname available', nickname.value)
+      emit('next', nickname.value)
+      return
+    }
+
+    error.value = response.message || '이미 사용 중인 닉네임입니다'
+  } catch (err) {
+    console.error('Nickname check failed:', err)
+    error.value = '닉네임 확인에 실패했습니다. 잠시 후 다시 시도해주세요'
+  } finally {
+    isChecking.value = false
   }
 }
 
 const handleInput = (value: string) => {
   nickname.value = value
-  if (hasAttempted.value) {
-    error.value = ''
-    hasAttempted.value = false
-  }
+  error.value = ''
+  hasAttempted.value = false
 }
 </script>
 
@@ -102,20 +122,20 @@ const handleInput = (value: string) => {
 
     <button
       type="button"
-      :disabled="!nickname"
+      :disabled="!nickname || isChecking"
       @click="handleSubmit"
       :class="[
         'h-[56px] w-full rounded-xl text-[16px] transition-all',
-        nickname
+        nickname && !isChecking
           ? 'text-white active:scale-[0.98]'
           : 'cursor-not-allowed bg-[var(--gray-100)] text-[var(--gray-400)]',
       ]"
       :style="{
         fontWeight: 600,
-        backgroundColor: nickname ? '#00C73C' : undefined,
+        backgroundColor: nickname && !isChecking ? '#00C73C' : undefined,
       }"
     >
-      다음
+      {{ isChecking ? '확인 중...' : '다음' }}
     </button>
   </div>
 </template>
