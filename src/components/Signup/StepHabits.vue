@@ -7,16 +7,14 @@ const emit = defineEmits<{
 
 const smokingOptions = [
   { value: 'none', label: '비흡연' },
-  { value: 'light', label: '가끔' },
-  { value: 'moderate', label: '보통' },
-  { value: 'heavy', label: '자주' },
+  { value: 'sometime', label: '가끔' },
+  { value: 'often', label: '자주' },
 ]
 
 const drinkingOptions = [
   { value: 'none', label: '음주 안함' },
-  { value: 'light', label: '가끔 (월 1-2회)' },
-  { value: 'moderate', label: '보통 (주 1-2회)' },
-  { value: 'heavy', label: '자주 (주 3회 이상)' },
+  { value: 'sometime', label: '가끔' },
+  { value: 'often', label: '자주' },
 ]
 
 const smoking = ref('')

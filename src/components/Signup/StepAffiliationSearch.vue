@@ -16,7 +16,12 @@ const isLoading = ref(false)
 const error = ref('')
 let debounceId: number | undefined
 
-const hasQuery = computed(() => Boolean(searchQuery.value.trim()))
+const trimmedQuery = computed(() => searchQuery.value.trim())
+const hasQuery = computed(() => Boolean(trimmedQuery.value))
+const isQueryTooShort = computed(() => hasQuery.value && trimmedQuery.value.length < 2)
+const helperMessage = computed(() =>
+  isQueryTooShort.value ? '검색어는 최소 2글자 이상이어야 합니다' : '',
+)
 
 const handleSelect = (affiliation: GroupOption) => {
   selectedGroupId.value = affiliation.groupId
@@ -46,10 +51,17 @@ watch(searchQuery, (value) => {
     return
   }
 
+  if (query.length < 2) {
+    results.value = []
+    return
+  }
+
   debounceId = window.setTimeout(async () => {
     isLoading.value = true
     try {
+      console.info('[Signup] group search query', query)
       results.value = await searchGroups(query)
+      console.info('[Signup] group search results', results.value)
     } catch (err) {
       console.error('Group search failed:', err)
       error.value = '검색에 실패했습니다. 잠시 후 다시 시도해주세요'
@@ -91,7 +103,14 @@ watch(searchQuery, (value) => {
 
       <div v-if="hasQuery" class="mt-6 space-y-2">
         <div
-          v-if="isLoading"
+          v-if="helperMessage"
+          class="py-4 text-center text-[14px] text-[var(--gray-500)]"
+          style="font-weight: 400"
+        >
+          {{ helperMessage }}
+        </div>
+        <div
+          v-else-if="isLoading"
           class="py-6 text-center text-[14px] text-[var(--gray-400)]"
           style="font-weight: 400"
         >

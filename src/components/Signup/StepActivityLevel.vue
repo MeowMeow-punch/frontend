@@ -6,11 +6,10 @@ const emit = defineEmits<{
 }>()
 
 const activityLevels = [
-  { value: 'sedentary', label: '거의 안함', desc: '주로 앉아서 생활' },
-  { value: 'light', label: '가벼운 활동', desc: '주 1-2회 가벼운 운동' },
-  { value: 'moderate', label: '보통 활동', desc: '주 3-4회 중강도 운동' },
-  { value: 'active', label: '활발한 활동', desc: '주 5-6회 고강도 운동' },
-  { value: 'very-active', label: '매우 활발', desc: '매일 고강도 운동' },
+  { value: 'low', label: '낮음', desc: '주로 앉아서 생활' },
+  { value: 'medium', label: '보통', desc: '가벼운 운동이나 활동 (주 1-3회)' },
+  { value: 'high', label: '높음', desc: '규칙적인 운동 (주 3-5회)' },
+  { value: 'veryhigh', label: '매우 높음', desc: '강도 높은 운동 (주 6-7회)' },
 ]
 
 const activityLevel = ref('')

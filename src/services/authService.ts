@@ -1,10 +1,13 @@
 import { apiFetch } from '@/services/apiClient'
 import { mockCheckNickname, mockLogin, mockLogout, mockSearchGroups } from '@/mocks/auth'
 import {
+  clearAuthMode,
   clearTokens,
   getAccessToken,
+  getAuthMode,
   getRefreshToken,
   isAuthenticated,
+  setAuthMode,
   setTokens,
 } from '@/services/tokenStore'
 
@@ -76,10 +79,20 @@ export { clearTokens, getAccessToken, getRefreshToken, isAuthenticated }
 
 export const isAuthMockEnabled = () => SHOULD_USE_MOCK
 
-export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
-  if (SHOULD_USE_MOCK) {
+const shouldUseMockAuth = () => SHOULD_USE_MOCK && getAuthMode() !== 'real'
+
+type LoginOptions = {
+  forceReal?: boolean
+}
+
+export const login = async (
+  payload: LoginRequest,
+  options: LoginOptions = {},
+): Promise<LoginResponse> => {
+  if (!options.forceReal && SHOULD_USE_MOCK) {
     const response = await mockLogin(payload)
     setTokens(response.data)
+    setAuthMode('mock')
     return response
   }
 
@@ -91,13 +104,16 @@ export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
   })
 
   setTokens(data.data)
+  setAuthMode('real')
   return data
 }
 
 export const logout = async (): Promise<BasicResponse> => {
-  if (SHOULD_USE_MOCK) {
+  const useMock = shouldUseMockAuth()
+  if (useMock) {
     const response = await mockLogout()
     clearTokens()
+    clearAuthMode()
     return response
   }
 
@@ -109,17 +125,18 @@ export const logout = async (): Promise<BasicResponse> => {
     })
   } finally {
     clearTokens()
+    clearAuthMode()
   }
 }
 
 export const checkNickname = async (nickname: string): Promise<BasicResponse> => {
-  if (SHOULD_USE_MOCK) {
+  if (shouldUseMockAuth()) {
     return mockCheckNickname(nickname)
   }
 
   return apiFetch<BasicResponse>('/user/nickname', {
     method: 'GET',
-    withAuth: false,
+    withAuth: true,
     query: { nickname },
     acceptStatuses: [409],
     errorMessage: 'Nickname check failed.',
@@ -132,7 +149,7 @@ export const searchGroups = async (keyword: string): Promise<GroupOption[]> => {
     return []
   }
 
-  if (SHOULD_USE_MOCK) {
+  if (shouldUseMockAuth()) {
     const data = await mockSearchGroups(trimmed)
     return Array.isArray(data.data) ? data.data : []
   }
