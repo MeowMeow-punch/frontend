@@ -1,22 +1,53 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { ArrowLeft, Check } from 'lucide-vue-next'
+import { reactive, ref, watch } from 'vue'
+import { ArrowLeft, Check, X } from 'lucide-vue-next'
+import { updateProfile } from '@/services/authService'
+import StepAffiliationSearch from '@/components/Signup/StepAffiliationSearch.vue'
+
+type ProfileForm = {
+  nickname: string
+  email: string
+  gender: string
+  height: string
+  weight: string
+  age: string
+  group: string
+  allergies: string[]
+  marketingConsent: boolean
+}
 
 const emit = defineEmits<{
   (e: 'back'): void
-  (e: 'save'): void
+  (
+    e: 'save',
+    profile: {
+      nickname: string
+      gender: string
+      height: number
+      weight: number
+      age: number
+      group: string
+      allergies: string[]
+      marketingConsent: boolean
+    },
+  ): void
+}>()
+
+const props = defineProps<{
+  profile: ProfileForm
 }>()
 
 const formData = reactive({
-  nickname: '건강한하루',
-  email: 'user@pickit.com',
-  gender: '남성',
-  height: '175',
-  weight: '73',
-  age: '28',
-  group: 'SSAFY 12기',
-  allergies: ['새우', '땅콩'],
-  marketingConsent: true,
+  nickname: '',
+  email: '',
+  gender: '',
+  height: '',
+  weight: '',
+  age: '',
+  group: '',
+  groupId: null as number | null,
+  allergies: [] as string[],
+  marketingConsent: false,
 })
 
 const socialConnections = reactive({
@@ -25,7 +56,28 @@ const socialConnections = reactive({
   naver: false,
 })
 
+const isSaving = ref(false)
+const isGroupSearchOpen = ref(false)
+
 const allergyOptions = ['땅콩', '새우', '우유', '계란', '밀가루', '대두', '생선', '견과류']
+
+const syncFormData = (profile: ProfileForm) => {
+  formData.nickname = profile.nickname
+  formData.email = profile.email
+  formData.gender = profile.gender
+  formData.height = profile.height
+  formData.weight = profile.weight
+  formData.age = profile.age
+  formData.group = profile.group
+  formData.marketingConsent = profile.marketingConsent
+  formData.allergies.splice(0, formData.allergies.length, ...profile.allergies)
+}
+
+watch(
+  () => props.profile,
+  (value) => syncFormData(value),
+  { immediate: true },
+)
 
 const toggleAllergy = (allergy: string) => {
   const index = formData.allergies.indexOf(allergy)
@@ -47,8 +99,64 @@ const handleToggleSocial = (platform: 'google' | 'kakao' | 'naver') => {
   socialConnections[platform] = !socialConnections[platform]
 }
 
-const handleSave = () => {
-  emit('save')
+const handleSelectGroup = (group: { id: number; name: string }) => {
+  formData.groupId = group.id
+  formData.group = group.name
+  isGroupSearchOpen.value = false
+}
+
+const handleClearGroup = () => {
+  formData.groupId = null
+  formData.group = ''
+  isGroupSearchOpen.value = false
+}
+
+const mapGenderToApi = (gender: string) => (gender === '남성' ? 'MALE' : 'FEMALE')
+
+const handleSave = async () => {
+  if (isSaving.value) {
+    return
+  }
+
+  isSaving.value = true
+  try {
+    const trimmedNickname = formData.nickname.trim()
+    const profilePayload = {
+      nickname: trimmedNickname || undefined,
+      gender: mapGenderToApi(formData.gender),
+      height: Number(formData.height),
+      weight: Number(formData.weight),
+      age: Number(formData.age),
+      allergies: [...formData.allergies],
+      isMarketing: formData.marketingConsent,
+      groupId: formData.groupId ? String(formData.groupId) : undefined,
+    } as const
+
+    const response = await updateProfile(profilePayload)
+    if (import.meta.env.DEV) {
+      console.info('[MyPage] profile update response', response)
+    }
+    if (response.code !== 200) {
+      alert(response.message || '개인정보 수정에 실패했습니다.')
+      return
+    }
+
+    emit('save', {
+      nickname: trimmedNickname || formData.nickname,
+      gender: formData.gender,
+      height: Number(formData.height),
+      weight: Number(formData.weight),
+      age: Number(formData.age),
+      group: formData.group,
+      allergies: [...formData.allergies],
+      marketingConsent: formData.marketingConsent,
+    })
+  } catch (error) {
+    console.error('Profile update failed:', error)
+    alert('개인정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.')
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -118,12 +226,40 @@ const handleSave = () => {
             <label for="group" class="text-[14px] text-[var(--gray-700)]" style="font-weight: 600"
               >소속</label
             >
-            <input
-              id="group"
-              v-model="formData.group"
-              placeholder="예: SSAFY 12기, OO 대학교"
-              class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
-            />
+            <div class="flex items-center gap-2">
+              <div class="relative flex-1">
+                <input
+                  id="group"
+                  v-model="formData.group"
+                  placeholder="예: SSAFY 12기, OO 대학교"
+                  class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 pr-9 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
+                  readonly
+                />
+                <button
+                  v-if="formData.group"
+                  type="button"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--gray-500)] transition hover:bg-[var(--gray-100)] hover:text-[var(--gray-700)]"
+                  @click="handleClearGroup"
+                >
+                  <X class="h-4 w-4" />
+                  <span class="sr-only">소속 제거</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                class="h-11 rounded-lg border border-[var(--gray-300)] px-3 text-[13px] text-[var(--gray-700)] transition hover:bg-[var(--gray-50)]"
+                style="font-weight: 600"
+                @click="isGroupSearchOpen = !isGroupSearchOpen"
+              >
+                {{ isGroupSearchOpen ? '닫기' : '검색' }}
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="isGroupSearchOpen"
+            class="mt-6 rounded-2xl border border-[var(--gray-200)] bg-white p-6"
+          >
+            <StepAffiliationSearch variant="inline" @next="handleSelectGroup" />
           </div>
         </div>
       </div>
@@ -412,10 +548,11 @@ const handleSave = () => {
       <button
         type="button"
         class="h-12 w-full rounded-xl text-[15px] text-white"
+        :disabled="isSaving"
         style="background-color: #00c73c; font-weight: 600"
         @click="handleSave"
       >
-        저장
+        {{ isSaving ? '저장 중...' : '저장' }}
       </button>
     </div>
   </div>
