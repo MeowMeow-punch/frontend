@@ -1,10 +1,38 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { isAuthMockEnabled, login } from '@/services/authService'
+import type { OAuthProvider } from '@/services/authService'
 
 const router = useRouter()
+const route = useRoute()
+const isSubmitting = ref(false)
+const isMockMode = isAuthMockEnabled()
 
-const handleLogin = () => {
-  router.push('/') // TODO: replace with real auth flow
+const handleLogin = async (provider: OAuthProvider) => {
+  if (isSubmitting.value) {
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    await login({
+      oauthProvider: provider,
+      oauthId: `mock-${provider.toLowerCase()}-${Date.now()}`,
+      redirectUri: window.location.origin,
+    })
+
+    const redirectPath = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    if (isMockMode) {
+      console.log('[Mock Login] success', { provider, redirectPath })
+    }
+    router.push(redirectPath)
+  } catch (error) {
+    console.error('Login failed:', error)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const handleSignup = () => {
@@ -47,7 +75,9 @@ const handleSignup = () => {
       <div class="space-y-3">
         <button
           type="button"
-          @click="handleLogin"
+          @click="handleLogin('KAKAO')"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
           class="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#FEE500] text-[#000000] shadow-none transition hover:bg-[#FEE500]/90"
         >
           <svg
@@ -67,7 +97,9 @@ const handleSignup = () => {
 
         <button
           type="button"
-          @click="handleLogin"
+          @click="handleLogin('GOOGLE')"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
           class="flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-[var(--gray-300)] bg-white text-slate-900 shadow-none transition hover:bg-slate-50"
         >
           <svg
@@ -99,7 +131,9 @@ const handleSignup = () => {
 
         <button
           type="button"
-          @click="handleLogin"
+          @click="handleLogin('NAVER')"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
           class="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#03C75A] text-white shadow-none transition hover:bg-[#03C75A]/90"
         >
           <svg

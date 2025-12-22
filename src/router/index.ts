@@ -9,6 +9,7 @@ import MyPageView from '@/views/MyPageView/MyPageView.vue'
 import DietView from '@/views/DietView/DietView.vue'
 import DietRecordView from '@/views/DietView/DietRecordView.vue'
 import DietCafeteriaView from '@/views/DietView/DietCafeteriaView.vue'
+import { isAuthenticated } from '@/services/authService'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,13 +18,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { hideNav: true },
+      meta: { hideNav: true, guestOnly: true },
     },
     {
       path: '/regist', // 회원가입
       name: 'regist',
       component: SignupView,
-      meta: { hideNav: true },
+      meta: { hideNav: true, guestOnly: true },
     },
     {
       path: '/', // 메인페이지
@@ -39,23 +40,39 @@ const router = createRouter({
       path: '/mypage',
       name: 'mypage', // 마이페이지
       component: MyPageView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/diet',
       name: 'diet', // 식단 페이지
       component: DietView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/diet/record',
       name: 'diet-record',
       component: DietRecordView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/diet/cafeteria',
       name: 'diet-cafeteria',
       component: DietCafeteriaView,
+      meta: { requiresAuth: true },
     },
   ],
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.guestOnly && isAuthenticated()) {
+    return { name: 'home' }
+  }
+
+  return true
 })
 
 export default router
