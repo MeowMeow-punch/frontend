@@ -69,6 +69,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && isAuthenticated()) {
+    if (import.meta.env.DEV) {
+      // TODO: remove dev override once auth flow is finalized.
+      return true
+    }
     return { name: 'home' }
   }
 

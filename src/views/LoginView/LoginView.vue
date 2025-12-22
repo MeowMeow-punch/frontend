@@ -2,12 +2,20 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isAuthMockEnabled, login } from '@/services/authService'
+import {
+  clearStoredOAuthId,
+  getOrCreateOAuthId,
+  getStoredOAuthId,
+  setStoredOAuthId,
+} from '@/services/oauthStore'
 import type { OAuthProvider } from '@/services/authService'
 
 const router = useRouter()
 const route = useRoute()
 const isSubmitting = ref(false)
 const isMockMode = isAuthMockEnabled()
+const isDev = import.meta.env.DEV
+const testOauthId = ref(getStoredOAuthId('KAKAO'))
 
 const handleLogin = async (provider: OAuthProvider) => {
   if (isSubmitting.value) {
@@ -16,17 +24,25 @@ const handleLogin = async (provider: OAuthProvider) => {
 
   isSubmitting.value = true
 
+  const shouldForceReal = provider === 'KAKAO'
+  const shouldUseMock = isMockMode && !shouldForceReal
+
   try {
-    await login({
-      oauthProvider: provider,
-      oauthId: `mock-${provider.toLowerCase()}-${Date.now()}`,
-      redirectUri: window.location.origin,
-    })
+    console.info(`[Login] ${shouldUseMock ? 'mock' : 'real'} login start`, { provider })
+    await login(
+      {
+        oauthProvider: provider,
+        oauthId: getOrCreateOAuthId(provider),
+        redirectUri: window.location.origin,
+      },
+      { forceReal: shouldForceReal },
+    )
 
     const redirectPath = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    if (isMockMode) {
-      console.log('[Mock Login] success', { provider, redirectPath })
-    }
+    console.info(`[Login] ${shouldUseMock ? 'mock' : 'real'} login success`, {
+      provider,
+      redirectPath,
+    })
     router.push(redirectPath)
   } catch (error) {
     console.error('Login failed:', error)
@@ -37,6 +53,22 @@ const handleLogin = async (provider: OAuthProvider) => {
 
 const handleSignup = () => {
   router.push('/regist')
+}
+
+const handleApplyTestOauthId = () => {
+  const trimmed = testOauthId.value.trim()
+  if (!trimmed) {
+    return
+  }
+
+  setStoredOAuthId('KAKAO', trimmed)
+  console.info('[Login] test oauthId applied', { provider: 'KAKAO', oauthId: trimmed })
+}
+
+const handleClearTestOauthId = () => {
+  clearStoredOAuthId('KAKAO')
+  testOauthId.value = ''
+  console.info('[Login] test oauthId cleared', { provider: 'KAKAO' })
 }
 </script>
 
@@ -147,6 +179,40 @@ const handleSignup = () => {
           </svg>
           <span>네이버 로그인</span>
         </button>
+      </div>
+
+      <div
+        v-if="isDev"
+        class="mt-8 rounded-2xl border border-[var(--gray-200)] bg-[var(--gray-50)] p-4 text-[13px] text-[var(--gray-700)]"
+      >
+        <p class="mb-3" style="font-weight: 600">테스트 로그인 설정 (KAKAO)</p>
+        <p class="mb-3 text-[12px] text-[var(--gray-500)]" style="font-weight: 400">
+          DB에 있는 oauth_id 값을 입력하면 해당 계정으로 로그인됩니다.
+        </p>
+        <div class="flex items-center gap-2">
+          <input
+            v-model="testOauthId"
+            type="text"
+            placeholder="mock-kakao-..."
+            class="h-10 flex-1 rounded-lg border border-[var(--gray-300)] bg-white px-3 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#00C73C]"
+          />
+          <button
+            type="button"
+            @click="handleApplyTestOauthId"
+            class="h-10 rounded-lg bg-[#00C73C] px-3 text-white"
+            style="font-weight: 600"
+          >
+            적용
+          </button>
+          <button
+            type="button"
+            @click="handleClearTestOauthId"
+            class="h-10 rounded-lg border border-[var(--gray-300)] bg-white px-3 text-[var(--gray-700)]"
+            style="font-weight: 600"
+          >
+            초기화
+          </button>
+        </div>
       </div>
 
       <div class="pt-8 text-center">

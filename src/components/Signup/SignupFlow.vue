@@ -73,7 +73,7 @@ const stepOrder = computed<SignupStep[]>(() => {
   if (focusType.value === 'nutrition') {
     order.push('disease', 'habits', 'mealCount', 'activity')
   } else if (focusType.value === 'diet' || focusType.value === 'bulkup') {
-    order.push('activityGoal', 'targetWeight')
+    order.push('mealCount', 'activityGoal', 'targetWeight')
   }
 
   order.push('welcome')
@@ -142,7 +142,7 @@ const handleFocusNext = (focus: FocusType) => {
   if (focus === 'nutrition') {
     step.value = 'disease'
   } else if (focus === 'diet' || focus === 'bulkup') {
-    step.value = 'activityGoal'
+    step.value = 'mealCount'
   }
 }
 
@@ -158,7 +158,11 @@ const handleHabitsNext = (values: typeof habits.value) => {
 
 const handleMealCountNext = (count: string) => {
   mealCount.value = count
-  step.value = 'activity'
+  if (focusType.value === 'nutrition') {
+    step.value = 'activity'
+    return
+  }
+  step.value = 'activityGoal'
 }
 
 const handleActivityNext = (level: string) => {

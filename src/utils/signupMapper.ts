@@ -1,4 +1,5 @@
 import type { RegisterRequest } from '@/services/authService'
+import { getOrCreateOAuthId } from '@/services/oauthStore'
 import type { SignupResult } from '@/types/signup'
 
 const mapGender = (gender: string): RegisterRequest['gender'] =>
@@ -18,10 +19,9 @@ const mapMealCount = (count: string): RegisterRequest['meals'] => {
 }
 
 const mapActivityLevel = (level: string): RegisterRequest['activityLevel'] => {
-  if (level === 'sedentary') return 'LOW'
-  if (level === 'light') return 'MEDIUM'
-  if (level === 'moderate') return 'HIGH'
-  if (level === 'active') return 'HIGH'
+  if (level === 'low' || level === 'sedentary') return 'LOW'
+  if (level === 'medium' || level === 'light') return 'MEDIUM'
+  if (level === 'high' || level === 'moderate' || level === 'active') return 'HIGH'
   return 'VERYHIGH'
 }
 
@@ -29,6 +29,8 @@ const mapHabit = (value: string): RegisterRequest['isSmoking'] => {
   if (value === 'none') return 'NONE'
   if (value === 'light') return 'SOMETIME'
   if (value === 'moderate') return 'SOMETIME'
+  if (value === 'sometime') return 'SOMETIME'
+  if (value === 'often') return 'OFTEN'
   return 'OFTEN'
 }
 
@@ -40,7 +42,7 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
 
   const result: RegisterRequest = {
     oauthProvider: 'KAKAO',
-    oauthId: `mock-kakao-${Date.now()}`,
+    oauthId: getOrCreateOAuthId('KAKAO'),
     nickname: payload.nickname,
     isMarketing: payload.terms.marketing,
     gender: mapGender(payload.userInfo.gender),
