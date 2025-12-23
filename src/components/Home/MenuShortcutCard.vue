@@ -6,8 +6,9 @@ withDefaults(
     label: string
     subtitle: string
     chip?: string
+    footer?: string
   }>(),
-  { chip: 'NEW' },
+  { chip: 'NEW', footer: 'SSAFY 14기 · 23명' },
 )
 
 const emit = defineEmits<{
@@ -39,6 +40,6 @@ const emit = defineEmits<{
       <ChevronRight class="h-4 w-4 text-[var(--gray-400)] group-hover:text-[#00C73C]" />
     </div>
     <p class="mb-4 text-[13px] text-[var(--gray-500)]">{{ subtitle }}</p>
-    <p class="text-[12px] font-medium text-[var(--gray-400)]">SSAFY 14기 · 23명</p>
+    <p class="text-[12px] font-medium text-[var(--gray-400)]">{{ footer }}</p>
   </div>
 </template>

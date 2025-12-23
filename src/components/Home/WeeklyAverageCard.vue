@@ -8,7 +8,10 @@ defineProps<{
 
 <template>
   <div class="rounded-2xl border border-[var(--gray-200)] bg-[#F9FAFB] p-6">
-    <h3 class="mb-4 text-[14px] font-medium text-[var(--gray-500)]">이번 주 평균</h3>
+    <div class="mb-4">
+      <h3 class="text-[14px] font-medium text-[var(--gray-500)]">이번 주 평균</h3>
+      <p class="mt-1 text-[12px] text-[var(--gray-400)]">월요일~일요일 기준</p>
+    </div>
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <span class="text-[14px] text-[var(--gray-700)]">칼로리</span>

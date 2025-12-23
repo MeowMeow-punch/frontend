@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Plus } from 'lucide-vue-next'
+import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 
 export interface RecommendedFood {
   id: number
@@ -33,6 +34,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'select', meal: RecommendedMeal): void
+  (e: 'quick-add', meal: RecommendedMeal): void
 }>()
 
 function computeMacros(meal: RecommendedMeal) {
@@ -75,11 +77,10 @@ function computeMacros(meal: RecommendedMeal) {
             :class="meal.foods.length === 1 ? 'col-span-2 row-span-2' : ''"
             class="relative h-full w-full"
           >
-            <img
+            <ImageWithFallback
               :src="food.image"
               :alt="food.name"
               class="h-full w-full object-cover"
-              loading="lazy"
             />
           </div>
         </div>
@@ -124,6 +125,7 @@ function computeMacros(meal: RecommendedMeal) {
         <button
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--gray-200)] bg-[var(--gray-50)] text-[var(--gray-400)] transition-colors hover:bg-[var(--gray-100)] hover:text-[var(--gray-600)]"
           type="button"
+          @click.stop="emit('quick-add', meal)"
         >
           <Plus class="h-4 w-4" />
         </button>

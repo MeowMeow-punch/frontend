@@ -15,7 +15,7 @@ defineProps<{
         <Bot class="h-4 w-4 text-white" />
       </div>
       <div>
-        <p class="mb-1 text-[14px] font-bold text-[var(--gray-900)]">AI 영양 코칭</p>
+        <p class="mb-1 text-[14px] font-bold text-[var(--gray-900)]">식단 추천 AI</p>
         <p class="text-[13px] text-[var(--gray-700)]">
           {{ message }}
         </p>

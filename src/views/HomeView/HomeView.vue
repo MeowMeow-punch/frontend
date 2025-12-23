@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BannerCarousel, { type Banner } from '@/components/Home/BannerCarousel.vue'
 import CalorieSummaryCard from '@/components/Home/CalorieSummaryCard.vue'
@@ -10,11 +11,20 @@ import NutritionCard, { type NutritionItem } from '@/components/Home/NutritionCa
 import MenuShortcutCard from '@/components/Home/MenuShortcutCard.vue'
 import WeeklyAverageCard from '@/components/Home/WeeklyAverageCard.vue'
 import { useDietStore } from '@/composables/useDietStore'
+import {
+  getDietDaily,
+  getDietMain,
+  resolveDietImageUrl,
+  type DietMainData,
+  type DietMealType,
+} from '@/services/dietService'
+import { getUserProfile } from '@/services/authService'
+import { getAuthMode, isAuthenticated } from '@/services/tokenStore'
 import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
 const goTo = (path: string) => router.push(path)
-const { setDraftMeal } = useDietStore()
+const { setDraftMeal, setDraftSearch } = useDietStore()
 
 function isMealTime(value: string): value is MealTime {
   return value === 'breakfast' || value === 'lunch' || value === 'dinner' || value === 'snack'
@@ -27,6 +37,13 @@ function handleRecommendedMealSelect(meal: RecommendedMeal) {
     return
   }
   goTo('/diet')
+}
+
+function handleRecommendedMealQuickAdd(meal: RecommendedMeal) {
+  const time = isMealTime(meal.time) ? meal.time : undefined
+  console.info('[Home] recommended quick add', { mealId: meal.id, name: meal.name, time })
+  setDraftSearch({ keyword: meal.name, time })
+  goTo('/diet/record')
 }
 
 const banners: Banner[] = [
@@ -51,120 +68,265 @@ const banners: Banner[] = [
   },
 ]
 
-const totalCalories = 1850
-const targetCalories = 2000
-const aiMessage = '단백질 섭취가 목표보다 25g 부족해요. 저녁에 고단백 저지방 식품을 추가해보세요.'
+const totalCalories = ref(1850)
+const targetCalories = ref(2000)
+const aiMessage = ref(
+  '단백질 섭취가 목표보다 25g 부족해요. 저녁에 고단백 저지방 식품을 추가해보세요.',
+)
 
-const nutritionData: NutritionItem[] = [
+const nutritionData = ref<NutritionItem[]>([
   { name: '탄수화물', current: 250, target: 280 },
   { name: '단백질', current: 95, target: 120 },
   { name: '지방', current: 82, target: 70 },
-]
+])
 
-const recommendedMeals: RecommendedMeal[] = [
-  {
-    id: 1,
-    name: '연어 포케 볼 세트',
-    time: 'lunch',
-    timeLabel: '점심',
-    calories: 520,
-    protein: 35,
-    carbs: 53,
-    fat: 17,
-    isCafeteria: true,
-    foods: [
+const recommendedMeals = ref<RecommendedMeal[]>([])
+const weeklyAverageCalories = ref('0kcal')
+const weeklyAchievement = ref('0%')
+const weeklyStreak = ref('0일')
+const menuCardLabel = ref('메뉴 보러가기')
+const menuCardSubtitle = ref('오늘 우리 회사 메뉴는 무엇일까요?')
+const menuCardChip = ref('NEW')
+const menuCardFooter = ref('SSAFY 14기 · 23명')
+
+const mealTypeLabels: Record<DietMealType, string> = {
+  BREAKFAST: '아침',
+  LUNCH: '점심',
+  DINNER: '저녁',
+  SNACK: '간식',
+}
+
+const mealTypeDraftMap: Record<DietMealType, MealTime> = {
+  BREAKFAST: 'breakfast',
+  LUNCH: 'lunch',
+  DINNER: 'dinner',
+  SNACK: 'snack',
+}
+
+const menuSlotOrder = ['LUNCH', 'DINNER', 'BREAKFAST', 'SNACK'] as const
+const menuSlotLabels: Record<string, string> = {
+  BREAKFAST: '아침',
+  LUNCH: '점심',
+  DINNER: '저녁',
+  SNACK: '간식',
+}
+
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getWeekDates = () => {
+  const today = new Date()
+  const day = today.getDay()
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(today)
+  monday.setDate(diff)
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + index)
+    return formatDate(date)
+  })
+}
+
+const updateMenuCard = (
+  menus?: Record<string, { name: string; calorie: number; subName: string }>,
+) => {
+  if (!menus || Object.keys(menus).length === 0) {
+    menuCardLabel.value = '메뉴 보러가기'
+    menuCardSubtitle.value = '오늘 등록된 메뉴가 없습니다.'
+    menuCardChip.value = 'NEW'
+    return
+  }
+
+  const slot = menuSlotOrder.find((key) => menus[key]?.name) ?? Object.keys(menus)[0]
+  const menu = slot ? menus[slot] : undefined
+  if (!menu?.name) {
+    menuCardLabel.value = '메뉴 보러가기'
+    menuCardSubtitle.value = '오늘 등록된 메뉴가 없습니다.'
+    menuCardChip.value = 'NEW'
+    return
+  }
+
+  const slotLabel = menuSlotLabels[slot] ?? '오늘'
+  const suffix = menu.subName ? ` · ${menu.subName}` : ''
+  menuCardLabel.value = '메뉴 보러가기'
+  menuCardSubtitle.value = `${slotLabel} ${menu.name}${suffix}`
+  menuCardChip.value = slotLabel
+}
+
+type DietMainRecommendation = DietMainData['recommendedDietsInfo'][number]
+
+const mapRecommendedMeals = (items: DietMainRecommendation[]) =>
+  items.map((item) => {
+    const imageUrl = resolveDietImageUrl(item.thumbnailUrls?.[0])
+    const nutrients = item.nutrients ?? { carbs: 0, protein: 0, fat: 0 }
+    return {
+      id: item.recommendationId,
+      name: item.name,
+      time: mealTypeDraftMap[item.mealType],
+      timeLabel: mealTypeLabels[item.mealType],
+      calories: item.calorie,
+      protein: nutrients.protein,
+      carbs: nutrients.carbs,
+      fat: nutrients.fat,
+      foods: [
+        {
+          id: item.recommendationId,
+          name: item.name,
+          calories: item.calorie,
+          protein: nutrients.protein,
+          carbs: nutrients.carbs,
+          fat: nutrients.fat,
+          servingSize: '1 serving',
+          category: 'recommendation',
+          image: imageUrl,
+          quantity: 1,
+        },
+      ],
+    }
+  })
+
+const fetchWeeklyOverview = async () => {
+  const hasToken = isAuthenticated()
+  const authMode = getAuthMode()
+  if (!hasToken) {
+    console.info('[Home] weekly overview skipped', { reason: 'no access token', authMode })
+    return
+  }
+
+  const dates = getWeekDates()
+  const todayString = formatDate(new Date())
+  console.info('[Home] weekly overview request', { dates })
+
+  try {
+    const [profileResult, dailyResult] = await Promise.allSettled([
+      getUserProfile(),
+      Promise.allSettled(dates.map((date) => getDietDaily(date))),
+    ])
+
+    if (profileResult.status === 'fulfilled') {
+      const activitySummary = profileResult.value.data?.activitySummary
+      const userProfile = profileResult.value.data?.userProfile
+      const streakCount = activitySummary?.streak?.count ?? 0
+      const weeklyDietCount = activitySummary?.weeklyDiet?.count ?? 0
+      const weeklyDietGoal = activitySummary?.weeklyDiet?.goal ?? 0
+      const achievementPercent =
+        weeklyDietGoal > 0 ? Math.round((weeklyDietCount / weeklyDietGoal) * 100) : 0
+
+      weeklyStreak.value = `${streakCount}일`
+      weeklyAchievement.value = `${achievementPercent}%`
+      menuCardFooter.value = userProfile?.groupName?.trim() || '소속 미지정'
+
+      console.info('[Home] weekly overview profile mapped', {
+        streak: weeklyStreak.value,
+        achievement: weeklyAchievement.value,
+        groupName: menuCardFooter.value,
+      })
+    } else {
+      console.warn('[Home] weekly overview profile failed', {
+        message:
+          profileResult.reason instanceof Error
+            ? profileResult.reason.message
+            : profileResult.reason,
+      })
+    }
+
+    if (dailyResult.status === 'fulfilled') {
+      const fulfilledResults = dailyResult.value.filter(
+        (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof getDietDaily>>> =>
+          result.status === 'fulfilled',
+      )
+      const summaries = fulfilledResults.map(
+        (result) => result.value.summaryInfo?.calorie?.current ?? 0,
+      )
+      const total = summaries.reduce((sum, value) => sum + value, 0)
+      if (summaries.length > 0) {
+        const average = Math.round(total / summaries.length)
+        weeklyAverageCalories.value = `${average.toLocaleString()}kcal`
+      } else {
+        weeklyAverageCalories.value = '0kcal'
+      }
+
+      const todayIndex = dates.findIndex((date) => date === todayString)
+      const todayResult = todayIndex >= 0 ? dailyResult.value[todayIndex] : null
+      if (todayResult && todayResult.status === 'fulfilled') {
+        updateMenuCard(todayResult.value.todayRestaurantMenu)
+      } else {
+        updateMenuCard(undefined)
+      }
+
+      console.info('[Home] weekly overview daily mapped', {
+        averageCalories: weeklyAverageCalories.value,
+        menuCardSubtitle: menuCardSubtitle.value,
+        menuCardChip: menuCardChip.value,
+      })
+    } else {
+      console.warn('[Home] weekly overview daily failed', {
+        message:
+          dailyResult.reason instanceof Error ? dailyResult.reason.message : dailyResult.reason,
+      })
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Weekly overview fetch failed.'
+    console.warn('[Home] weekly overview error', { message, authMode, hasToken })
+  }
+}
+
+const fetchDietMain = async () => {
+  const hasToken = isAuthenticated()
+  const authMode = getAuthMode()
+  if (!hasToken) {
+    console.info('[Home] diet main skipped', { reason: 'no access token', authMode })
+    return
+  }
+
+  try {
+    const data = await getDietMain()
+    console.info('[Home] diet main response', data)
+
+    totalCalories.value = data.summaryInfo.calorie.current
+    targetCalories.value = data.summaryInfo.calorie.goal
+    nutritionData.value = [
       {
-        id: 101,
-        name: '연어 포케',
-        calories: 450,
-        protein: 30,
-        carbs: 45,
-        fat: 15,
-        servingSize: '1인분',
-        category: '주식',
-        image:
-          'https://images.unsplash.com/photo-1666819691716-827f78d892f3?auto=format&fit=crop&w=400&q=80',
-        quantity: 1,
+        name: '탄수화물',
+        current: data.summaryInfo.carbs.current,
+        target: data.summaryInfo.carbs.goal,
       },
       {
-        id: 102,
-        name: '미소 된장국',
-        calories: 70,
-        protein: 5,
-        carbs: 8,
-        fat: 2,
-        servingSize: '1그릇',
-        category: '국/찌개',
-        image:
-          'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=400&q=80',
-        quantity: 1,
+        name: '단백질',
+        current: data.summaryInfo.protein.current,
+        target: data.summaryInfo.protein.goal,
       },
-    ],
-  },
-  {
-    id: 2,
-    name: '닭가슴살 샐러드 정식',
-    time: 'dinner',
-    timeLabel: '저녁',
-    calories: 380,
-    protein: 42,
-    carbs: 40,
-    fat: 7,
-    foods: [
-      {
-        id: 201,
-        name: '닭가슴살 샐러드',
-        calories: 230,
-        protein: 35,
-        carbs: 10,
-        fat: 5,
-        servingSize: '1접시',
-        category: '단백질',
-        image:
-          'https://images.unsplash.com/photo-1562436260-126d541901e0?auto=format&fit=crop&w=400&q=80',
-        quantity: 1,
-      },
-      {
-        id: 202,
-        name: '호밀빵',
-        calories: 150,
-        protein: 7,
-        carbs: 30,
-        fat: 2,
-        servingSize: '2조각',
-        category: '주식',
-        image:
-          'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80',
-        quantity: 1,
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: '현미 비빔밥',
-    time: 'breakfast',
-    timeLabel: '아침',
-    calories: 450,
-    protein: 18,
-    carbs: 75,
-    fat: 10,
-    foods: [
-      {
-        id: 301,
-        name: '현미 비빔밥',
-        calories: 450,
-        protein: 18,
-        carbs: 75,
-        fat: 10,
-        servingSize: '1그릇',
-        category: '주식',
-        image:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=400&q=80',
-        quantity: 1,
-      },
-    ],
-  },
-]
+      { name: '지방', current: data.summaryInfo.fat.current, target: data.summaryInfo.fat.goal },
+    ]
+
+    if (data.aiFeedbackInfo?.message) {
+      aiMessage.value = data.aiFeedbackInfo.message
+    }
+
+    const recommendedItems = Array.isArray(data.recommendedDietsInfo)
+      ? data.recommendedDietsInfo
+      : []
+    recommendedMeals.value = mapRecommendedMeals(recommendedItems)
+
+    console.info('[Home] diet main mapped', {
+      calories: `${totalCalories.value}/${targetCalories.value}`,
+      recommendations: recommendedMeals.value.length,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Diet main fetch failed.'
+    console.warn('[Home] diet main error', { message, authMode, hasToken })
+  }
+}
+
+onMounted(() => {
+  fetchDietMain()
+  fetchWeeklyOverview()
+})
 </script>
 
 <template>
@@ -178,17 +340,27 @@ const recommendedMeals: RecommendedMeal[] = [
         <div class="min-w-0 space-y-4 md:space-y-5 lg:space-y-6">
           <CalorieSummaryCard :total-calories="totalCalories" :target-calories="targetCalories" />
           <AiInsightCard :message="aiMessage" />
-          <RecommendedMealsCard :meals="recommendedMeals" @select="handleRecommendedMealSelect" />
+          <RecommendedMealsCard
+            :meals="recommendedMeals"
+            @select="handleRecommendedMealSelect"
+            @quick-add="handleRecommendedMealQuickAdd"
+          />
         </div>
 
         <div class="min-w-0 space-y-4 md:space-y-5 lg:space-y-6">
           <NutritionCard :items="nutritionData" />
           <MenuShortcutCard
-            label="메뉴 보러가기"
-            subtitle="오늘 우리 회사 메뉴는 무엇일까요?"
+            :label="menuCardLabel"
+            :subtitle="menuCardSubtitle"
+            :chip="menuCardChip"
+            :footer="menuCardFooter"
             @click="goTo('/diet')"
           />
-          <WeeklyAverageCard calorie="1,920kcal" achievement="96%" streak="7일" />
+          <WeeklyAverageCard
+            :calorie="weeklyAverageCalories"
+            :achievement="weeklyAchievement"
+            :streak="weeklyStreak"
+          />
         </div>
       </div>
     </div>
