@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Minus, Plus, Search, Utensils, X } from 'lucide-vue-next'
 import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 import { useDietStore } from '@/composables/useDietStore'
+import {
+  createDiet,
+  getDietDetail,
+  getFoodList,
+  mapFoodItem,
+  resolveDietImageUrl,
+  searchFoods,
+  updateDiet,
+  type DietMealType,
+} from '@/services/dietService'
 import type { FoodItem, MealTime, SelectedFood } from '@/types/diet'
 
 const router = useRouter()
 const route = useRoute()
 
-const { selectedDate, consumeDraftMeal, getMealById, upsertMeal } = useDietStore()
+const { selectedDate, consumeDraftMeal, consumeDraftSearch } = useDietStore()
 
 const mealTimes: Array<{ id: MealTime; label: string; time: string; icon: string }> = [
   { id: 'breakfast', label: '아침', time: '07:00-10:00', icon: '☀️' },
@@ -18,142 +28,191 @@ const mealTimes: Array<{ id: MealTime; label: string; time: string; icon: string
   { id: 'snack', label: '간식', time: '언제든', icon: '🍪' },
 ]
 
-const categories = ['전체', '주식', '단백질', '채소', '유제품', '과일']
+const FOOD_PAGE_SIZE = 9
 
-const foodDatabase: FoodItem[] = [
-  {
-    id: 1,
-    name: '현미밥',
-    calories: 330,
-    protein: 7,
-    carbs: 69,
-    fat: 3,
-    servingSize: '1공기 (210g)',
-    image:
-      'https://images.unsplash.com/photo-1612429409929-b3825744f208?auto=format&fit=crop&w=600&q=80',
-    category: '주식',
-  },
-  {
-    id: 2,
-    name: '닭가슴살',
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fat: 3.6,
-    servingSize: '100g',
-    image:
-      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=600&q=80',
-    category: '단백질',
-  },
-  {
-    id: 3,
-    name: '연어',
-    calories: 206,
-    protein: 22,
-    carbs: 0,
-    fat: 13,
-    servingSize: '100g',
-    image:
-      'https://images.unsplash.com/photo-1562436260-126d541901e0?auto=format&fit=crop&w=600&q=80',
-    category: '단백질',
-  },
-  {
-    id: 4,
-    name: '고구마',
-    calories: 115,
-    protein: 2,
-    carbs: 27,
-    fat: 0,
-    servingSize: '중 1개 (130g)',
-    image:
-      'https://images.unsplash.com/photo-1629978046874-c0fce7d66ad3?auto=format&fit=crop&w=600&q=80',
-    category: '주식',
-  },
-  {
-    id: 5,
-    name: '아보카도',
-    calories: 160,
-    protein: 2,
-    carbs: 9,
-    fat: 15,
-    servingSize: '1/2개 (100g)',
-    image:
-      'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?auto=format&fit=crop&w=600&q=80',
-    category: '채소',
-  },
-  {
-    id: 6,
-    name: '그릭 요거트',
-    calories: 97,
-    protein: 10,
-    carbs: 4,
-    fat: 5,
-    servingSize: '1컵 (170g)',
-    image:
-      'https://images.unsplash.com/photo-1641494587136-eec74f1944ae?auto=format&fit=crop&w=600&q=80',
-    category: '유제품',
-  },
-  {
-    id: 7,
-    name: '브로콜리',
-    calories: 34,
-    protein: 3,
-    carbs: 7,
-    fat: 0,
-    servingSize: '1컵 (90g)',
-    image:
-      'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=600&q=80',
-    category: '채소',
-  },
-  {
-    id: 8,
-    name: '계란',
-    calories: 155,
-    protein: 13,
-    carbs: 1,
-    fat: 11,
-    servingSize: '2개 (100g)',
-    image:
-      'https://images.unsplash.com/photo-1587486937223-cc96d410b7b0?auto=format&fit=crop&w=600&q=80',
-    category: '단백질',
-  },
-  {
-    id: 9,
-    name: '방울토마토',
-    calories: 16,
-    protein: 0.9,
-    carbs: 3.9,
-    fat: 0.2,
-    servingSize: '100g',
-    image:
-      'https://images.unsplash.com/photo-1561136594-7f68413baa99?auto=format&fit=crop&w=600&q=80',
-    category: '채소',
-  },
-]
+const categories = ['전체', '주식', '단백질', '채소', '유제품', '과일', '기타']
+
+const foods = ref<FoodItem[]>([])
+
+const MEAL_TIME_TO_API: Record<MealTime, DietMealType> = {
+  breakfast: 'BREAKFAST',
+  lunch: 'LUNCH',
+  dinner: 'DINNER',
+  snack: 'SNACK',
+}
+
+const API_TO_MEAL_TIME: Record<DietMealType, MealTime> = {
+  BREAKFAST: 'breakfast',
+  LUNCH: 'lunch',
+  DINNER: 'dinner',
+  SNACK: 'snack',
+}
+
+const formatDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const formatTime = (date: Date) => {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+const normalizeApiTime = (value: string) => {
+  const parts = value.split(':').slice(0, 2)
+  return parts.length === 2 ? `${parts[0]}:${parts[1]}` : value
+}
+
+const normalizeFoodName = (value: string) => value.trim().toLowerCase()
 
 const searchQuery = ref('')
 const activeCategory = ref('전체')
 const selectedMealTime = ref<MealTime>('lunch')
 const selectedFoods = ref<SelectedFood[]>([])
 const editingMealId = ref<number | null>(null)
-const editingTimestamp = ref<string | null>(null)
+const editingDate = ref<string | null>(null)
+const editingTime = ref<string | null>(null)
+const isMealLoading = ref(false)
+const isSaving = ref(false)
+const pendingAutoSelectName = ref<string | null>(null)
+
+let foodRequestId = 0
+let searchTimeout: number | null = null
 
 const isEditing = computed(() => editingMealId.value !== null)
+
+const mapDetailFoods = (
+  foods: Array<{
+    foodId: number
+    name: string
+    quantity: number
+    calorie: number
+    nutrients: { carbs: number; protein: number; fat: number }
+    thumbnailUrl?: string | null
+  }>,
+): SelectedFood[] =>
+  foods.map((food) => ({
+    id: food.foodId,
+    name: food.name,
+    calories: food.calorie,
+    protein: food.nutrients?.protein ?? 0,
+    carbs: food.nutrients?.carbs ?? 0,
+    fat: food.nutrients?.fat ?? 0,
+    servingSize: `${food.quantity} serving`,
+    image: resolveDietImageUrl(food.thumbnailUrl),
+    category: '기타',
+    quantity: food.quantity,
+  }))
+
+const loadMealDetail = async (dietId: number) => {
+  isMealLoading.value = true
+  try {
+    console.info('[DietRecord] diet detail request', { dietId })
+    const response = await getDietDetail(dietId)
+    const detail = response?.dietInfo
+    if (!detail) {
+      console.warn('[DietRecord] diet detail missing', { dietId })
+      return
+    }
+
+    editingMealId.value = detail.myDietId
+    editingDate.value = detail.date
+    editingTime.value = normalizeApiTime(detail.time)
+    selectedMealTime.value = API_TO_MEAL_TIME[detail.mealType] ?? 'lunch'
+    selectedFoods.value = mapDetailFoods(detail.foods ?? [])
+    console.info('[DietRecord] diet detail mapped', {
+      dietId,
+      foods: selectedFoods.value.length,
+      mealType: selectedMealTime.value,
+      date: editingDate.value,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Diet detail load failed.'
+    console.warn('[DietRecord] diet detail error', { dietId, message })
+  } finally {
+    isMealLoading.value = false
+  }
+}
+
+const loadFoods = async (keyword: string) => {
+  const requestId = ++foodRequestId
+  const trimmedKeyword = keyword.trim()
+
+  try {
+    const data = trimmedKeyword
+      ? await searchFoods({ keyword: trimmedKeyword, size: FOOD_PAGE_SIZE })
+      : await getFoodList({ size: FOOD_PAGE_SIZE })
+
+    if (requestId !== foodRequestId) return
+    foods.value = (data.foods ?? []).map(mapFoodItem)
+
+    if (pendingAutoSelectName.value) {
+      if (!trimmedKeyword) {
+        pendingAutoSelectName.value = null
+        return
+      }
+
+      const target = normalizeFoodName(pendingAutoSelectName.value)
+      const exactMatch = foods.value.find((food) => normalizeFoodName(food.name) === target)
+      const partialMatch = foods.value.find((food) => normalizeFoodName(food.name).includes(target))
+      const match = exactMatch ?? partialMatch
+
+      if (match) {
+        addFood(match)
+        console.info('[DietRecord] auto select food', {
+          keyword: trimmedKeyword,
+          foodId: match.id,
+          name: match.name,
+        })
+      } else {
+        console.info('[DietRecord] auto select food not found', { keyword: trimmedKeyword })
+      }
+
+      pendingAutoSelectName.value = null
+    }
+  } catch (error) {
+    if (requestId !== foodRequestId) return
+    foods.value = []
+    const message = error instanceof Error ? error.message : 'Food fetch failed.'
+    console.warn('[DietRecord] food fetch failed', { message, keyword: trimmedKeyword })
+    pendingAutoSelectName.value = null
+  }
+}
+
+const scheduleFoodLoad = (keyword: string) => {
+  if (searchTimeout !== null) {
+    window.clearTimeout(searchTimeout)
+  }
+  searchTimeout = window.setTimeout(() => {
+    void loadFoods(keyword)
+  }, 300)
+}
+
+watch(searchQuery, (next) => {
+  scheduleFoodLoad(next)
+})
 
 function initFromRoute() {
   const idRaw = route.query.id
   if (typeof idRaw === 'string' && idRaw.trim() !== '') {
     const id = Number(idRaw)
     if (Number.isFinite(id)) {
-      const meal = getMealById(id)
-      if (meal) {
-        editingMealId.value = meal.id
-        editingTimestamp.value = meal.timestamp
-        selectedMealTime.value = meal.time
-        selectedFoods.value = meal.foods.map((f) => ({ ...f }))
-        return
-      }
+      void loadMealDetail(id)
+      return
     }
+  }
+
+  const draftSearch = consumeDraftSearch()
+  if (draftSearch) {
+    pendingAutoSelectName.value = draftSearch.keyword
+    searchQuery.value = draftSearch.keyword
+    if (draftSearch.time) {
+      selectedMealTime.value = draftSearch.time
+    }
+    return
   }
 
   const draft = consumeDraftMeal()
@@ -165,9 +224,13 @@ function initFromRoute() {
 
 initFromRoute()
 
+onMounted(() => {
+  void loadFoods(searchQuery.value)
+})
+
 const filteredFoods = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
-  return foodDatabase.filter((food) => {
+  return foods.value.filter((food) => {
     const matchCategory = activeCategory.value === '전체' || food.category === activeCategory.value
     const matchQuery =
       query === '' ||
@@ -214,16 +277,53 @@ function updateQuantity(foodId: number, delta: number) {
   })
 }
 
-function confirmSave() {
-  if (selectedFoods.value.length === 0) return
-  const timestamp = editingTimestamp.value ?? new Date(selectedDate.value).toISOString()
-  upsertMeal({
-    id: editingMealId.value ?? undefined,
-    time: selectedMealTime.value,
-    foods: selectedFoods.value,
-    timestamp,
-  })
-  router.push('/diet')
+const buildDietPayload = () => {
+  const date = editingDate.value ?? formatDate(selectedDate.value)
+  const time = editingTime.value ?? formatTime(new Date())
+  return {
+    date,
+    time,
+    mealType: MEAL_TIME_TO_API[selectedMealTime.value],
+    foods: selectedFoods.value.map((food) => ({
+      foodId: food.id,
+      quantity: food.quantity,
+    })),
+  }
+}
+
+async function confirmSave() {
+  if (selectedFoods.value.length === 0 || isSaving.value) return
+  const payload = buildDietPayload()
+  isSaving.value = true
+  try {
+    if (editingMealId.value) {
+      console.info('[DietRecord] diet update request', {
+        dietId: editingMealId.value,
+        foods: payload.foods.length,
+      })
+      const response = await updateDiet(editingMealId.value, payload)
+      console.info('[DietRecord] diet update response', response)
+    } else {
+      console.info('[DietRecord] diet create request', { foods: payload.foods.length })
+      const response = await createDiet(payload)
+      console.info('[DietRecord] diet create response', response)
+    }
+    router.push('/diet')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Diet save failed.'
+    console.warn('[DietRecord] diet save error', { message })
+    const duplicateHint =
+      message.includes('중복') ||
+      message.includes('이미') ||
+      message.toLowerCase().includes('duplicate')
+    alert(
+      duplicateHint
+        ? '해당 끼니는 하루에 1개만 저장됩니다.'
+        : '식단 저장에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    )
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function goBack() {
@@ -490,11 +590,14 @@ function goBack() {
               <button
                 type="button"
                 class="flex h-14 w-full items-center justify-center rounded-[16px] bg-[#00C73C] text-[17px] font-bold text-white shadow-lg shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="selectedFoods.length === 0"
+                :disabled="selectedFoods.length === 0 || isSaving"
                 @click="confirmSave"
               >
-                {{ isEditing ? '수정 완료' : '기록하기' }}
+                {{ isSaving ? '저장 중...' : isEditing ? '수정 완료' : '기록하기' }}
               </button>
+              <p class="text-center text-[12px] text-[var(--gray-400)]">
+                하루에 끼니별 식단은 1개만 저장됩니다.
+              </p>
             </div>
           </div>
         </div>

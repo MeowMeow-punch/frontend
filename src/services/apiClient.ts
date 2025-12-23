@@ -148,6 +148,27 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
     return response.data
   } catch (err) {
     if (axios.isAxiosError<ApiErrorPayload>(err)) {
+      const status = err.response?.status
+      const errorPayload = err.response?.data
+      const contentType = err.response?.headers?.['content-type']
+      const rawBody =
+        typeof errorPayload === 'string'
+          ? errorPayload.slice(0, 500)
+          : errorPayload
+            ? JSON.stringify(errorPayload).slice(0, 500)
+            : undefined
+      const headers = err.config?.headers as Record<string, string> | undefined
+      const hasAuthHeader = Boolean(headers?.Authorization || headers?.authorization)
+      console.warn('[apiFetch] request failed', {
+        method,
+        url: path,
+        status,
+        code: errorPayload?.code,
+        message: errorPayload?.message,
+        contentType,
+        rawBody,
+        hasAuthHeader,
+      })
       const message =
         err.response?.data?.message || err.message || errorMessage || 'Request failed.'
       throw new Error(message)
