@@ -7,7 +7,7 @@ import StepHabits from '@/components/Signup/StepHabits.vue'
 import StepMealCount from '@/components/Signup/StepMealCount.vue'
 import StepActivityLevel from '@/components/Signup/StepActivityLevel.vue'
 import StepTargetWeight from '@/components/Signup/StepTargetWeight.vue'
-import { updateDiet } from '@/services/authService'
+import { updateDiet, type UpdateDietRequest } from '@/services/authService'
 
 type UserType = '영양관리' | '다이어트' | '체중증량'
 type FocusType = 'diet' | 'bulkup'
@@ -103,27 +103,27 @@ const handleTypeSelect = (type: UserType) => {
   step.value = type === '영양관리' ? 'disease' : 'mealCount'
 }
 
-const mapFocus = (type: UserType) => {
+const mapFocus = (type: UserType): UpdateDietRequest['focus'] => {
   if (type === '다이어트') return 'DIET'
   if (type === '체중증량') return 'MUSCLE'
   return 'HEALTHY'
 }
 
-const mapMealCount = (count: string) => {
+const mapMealCount = (count: string): UpdateDietRequest['meals'] => {
   if (count === '1') return 'ONE'
   if (count === '2') return 'TWO'
   if (count === '3') return 'THREE'
   return 'ETC'
 }
 
-const mapActivityLevel = (level: string) => {
+const mapActivityLevel = (level: string): UpdateDietRequest['activityLevel'] => {
   if (level === 'low') return 'LOW'
   if (level === 'medium') return 'MEDIUM'
   if (level === 'high') return 'HIGH'
   return 'VERYHIGH'
 }
 
-const mapHabit = (value: string) => {
+const mapHabit = (value: string): NonNullable<UpdateDietRequest['isSmoking']> => {
   if (value === 'none') return 'NONE'
   if (value === 'sometime') return 'SOMETIME'
   return 'OFTEN'
