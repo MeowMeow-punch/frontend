@@ -15,7 +15,7 @@ export type OAuthProvider = 'KAKAO' | 'NAVER' | 'GOOGLE'
 
 export type LoginRequest = {
   oauthProvider: OAuthProvider
-  oauthId: string
+  authorizationCode: string
   redirectUri: string
 }
 
@@ -24,11 +24,23 @@ export type AuthTokens = {
   refreshToken: string
 }
 
+// 200 OK 응답 데이터
+export type LoginSuccessData = AuthTokens
+
+// 404 Not Found 응답 데이터 (회원가입 필요)
+export type LoginNeedRegisterData = {
+  registerToken: string
+}
+
 export type LoginResponse = {
   code: number
   message: string
-  data: AuthTokens
+  data: LoginSuccessData | LoginNeedRegisterData
 }
+
+export type LoginResult =
+  | { status: 'SUCCESS'; data: LoginSuccessData }
+  | { status: 'NEED_REGISTER'; data: LoginNeedRegisterData }
 
 export type BasicResponse = {
   code: number
@@ -36,8 +48,7 @@ export type BasicResponse = {
 }
 
 export type RegisterRequest = {
-  oauthProvider: OAuthProvider
-  oauthId: string
+  registerToken: string
   nickname: string
   isMarketing: boolean
   gender: 'MALE' | 'FEMALE'
@@ -47,12 +58,12 @@ export type RegisterRequest = {
   allergies: string[]
   diseases: string[]
   status: 'SINGLE' | 'GROUP'
-  groupId: number | null
+  groupId?: string
   focus: 'HEALTHY' | 'DIET' | 'MUSCLE'
-  isSmoking?: 'NONE' | 'SOMETIME' | 'OFTEN'
-  isDrinking?: 'NONE' | 'SOMETIME' | 'OFTEN'
-  meals?: 'ONE' | 'TWO' | 'THREE' | 'ETC'
-  activityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERYHIGH'
+  smokingStatus?: 'NONE' | 'SOMETIME' | 'OFTEN'
+  drinkingStatus?: 'NONE' | 'SOMETIME' | 'OFTEN'
+  meals: 'ONE' | 'TWO' | 'THREE' | 'ETC'
+  activityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERYHIGH'
   targetWeight?: number
 }
 
@@ -139,24 +150,47 @@ type LoginOptions = {
 export const login = async (
   payload: LoginRequest,
   options: LoginOptions = {},
-): Promise<LoginResponse> => {
+): Promise<LoginResult> => {
+  // 새로운 인증 흐름에서 Mock 로그인은 완전히 지원되지 않을 수 있음 (최소한의 구현)
   if (!options.forceReal && SHOULD_USE_MOCK) {
-    const response = await mockLogin(payload)
-    setTokens(response.data)
+    // 레거시 Mock 지원 - 백엔드 없이 테스트하기 위함
+    // 완전한 Mock 지원을 위해서는 이 부분도 업데이트가 필요할 수 있음
+    const response = await mockLogin({
+      // 기존 Mock 페이로드에 맞게 조정 (필요 시 Mock 수정)
+      oauthProvider: payload.oauthProvider,
+      oauthId: 'mock-id-' + payload.authorizationCode,
+      redirectUri: payload.redirectUri,
+    } as any)
+
+    // 레거시 Mock은 항상 성공 토큰을 반환한다고 가정
+    const tokens = response.data as AuthTokens
+    setTokens(tokens)
     setAuthMode('mock')
-    return response
+    return { status: 'SUCCESS', data: tokens }
   }
 
-  const data = await apiFetch<LoginResponse>('/auth/login', {
+  const response = await apiFetch<LoginResponse>('/auth/login', {
     method: 'POST',
     withAuth: false,
     body: payload,
+    acceptStatuses: [404], // 404는 '회원가입 필요' 상태로 처리
     errorMessage: 'Login failed.',
   })
 
-  setTokens(data.data)
-  setAuthMode('real')
-  return data
+  // Case 200: 성공
+  if (response.code === 200 && 'accessToken' in response.data) {
+    const tokens = response.data as LoginSuccessData
+    setTokens(tokens)
+    setAuthMode('real')
+    return { status: 'SUCCESS', data: tokens }
+  }
+
+  // Case 404: 회원가입 필요
+  if (response.code === 404 && 'registerToken' in response.data) {
+    return { status: 'NEED_REGISTER', data: response.data as LoginNeedRegisterData }
+  }
+
+  throw new Error(response.message || 'Login failed with unknown status.')
 }
 
 export const logout = async (): Promise<BasicResponse> => {
@@ -205,15 +239,13 @@ export const searchGroups = async (keyword: string): Promise<GroupOption[]> => {
     return Array.isArray(data.data) ? data.data : []
   }
 
-  const data = await apiFetch<GroupSearchResponse>('/user/groupSearch', {
+  return apiFetch<GroupSearchResponse>('/user/groupSearch', {
     method: 'GET',
     withAuth: true,
     query: { keyword: trimmed },
     acceptStatuses: [204],
     errorMessage: 'Group search failed.',
-  })
-
-  return Array.isArray(data.data) ? data.data : []
+  }).then((res) => (Array.isArray(res.data) ? res.data : []))
 }
 
 export const getUserProfile = async (): Promise<UserProfileResponse> => {
@@ -243,14 +275,19 @@ export const updateDiet = async (payload: UpdateDietRequest): Promise<BasicRespo
   })
 }
 
-export const register = async (payload: RegisterRequest): Promise<LoginResponse> => {
-  const data = await apiFetch<LoginResponse>('/auth/regist', {
+export const register = async (payload: RegisterRequest): Promise<LoginSuccessData> => {
+  const response = await apiFetch<LoginResponse>('/auth/regist', {
     method: 'POST',
     withAuth: false,
     body: payload,
     errorMessage: 'Signup failed.',
   })
 
-  setTokens(data.data)
-  return data
+  if (response.code === 201 && 'accessToken' in response.data) {
+    const tokens = response.data as LoginSuccessData
+    setTokens(tokens)
+    return tokens
+  }
+
+  throw new Error(response.message || 'Signup failed.')
 }
