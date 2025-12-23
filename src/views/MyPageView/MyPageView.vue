@@ -17,7 +17,7 @@ import Dialog from '@/components/Dialog/Dialog.vue'
 import EditGoal from '@/views/MyPageView/EditGoal.vue'
 import EditProfile from '@/views/MyPageView/EditProfile.vue'
 import PrivacyPolicy from '@/views/MyPageView/PrivacyPolicy.vue'
-import { getUserProfile, logout, updateProfile } from '@/services/authService'
+import { getUserProfile, logout, updateProfile, withdraw } from '@/services/authService'
 
 type SubPage = 'main' | 'edit-goal' | 'edit-profile' | 'privacy'
 
@@ -156,9 +156,22 @@ const handleLogout = async () => {
   }
 }
 
-const handleDeleteAccount = () => {
-  if (confirm('정말 회원 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.')) {
-    console.log('회원 탈퇴')
+const handleDeleteAccount = async () => {
+  if (!confirm('정말 회원 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.')) {
+    return
+  }
+
+  try {
+    await withdraw()
+    alert('회원 탈퇴가 완료되었습니다.')
+    router.replace('/login')
+  } catch (error) {
+    console.error('Withdraw failed:', error)
+    alert('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    // 실패해도 토큰이 만료되었거나 하면 로그인 페이지로 가야 할 수도 있음.
+    // authService.withdraw의 finally 블록에서 토큰을 지우므로,
+    // 실패하더라도 이미 로컬 토큰은 지워진 상태일 것임 -> 로그인으로 이동이 자연스러움.
+    router.replace('/login')
   }
 }
 

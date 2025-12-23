@@ -214,6 +214,30 @@ export const logout = async (): Promise<BasicResponse> => {
   }
 }
 
+export const withdraw = async (): Promise<BasicResponse> => {
+  // Mock logic not strictly required unless user asks, but safety check
+  if (shouldUseMockAuth()) {
+    // For mock, just behave like logout + success
+    clearTokens()
+    clearAuthMode()
+    return { code: 200, message: '회원탈퇴 성공 (Mock)' }
+  }
+
+  try {
+    const response = await apiFetch<BasicResponse>('/auth/delete', {
+      method: 'DELETE',
+      withAuth: true,
+      errorMessage: 'Withdraw failed.',
+    })
+    return response
+  } finally {
+    // 성공 여부와 관계없이 세션 정리? 혹은 성공 시에만?
+    // 보통 탈퇴 API 호출 후에는 로컬 세션도 날리는 게 안전함.
+    clearTokens()
+    clearAuthMode()
+  }
+}
+
 export const checkNickname = async (nickname: string): Promise<BasicResponse> => {
   if (shouldUseMockAuth()) {
     return mockCheckNickname(nickname)
