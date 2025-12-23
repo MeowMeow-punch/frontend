@@ -143,7 +143,14 @@ const updateMenuCard = (
   }
 
   const slot = menuSlotOrder.find((key) => menus[key]?.name) ?? Object.keys(menus)[0]
-  const menu = slot ? menus[slot] : undefined
+  if (!slot) {
+    menuCardLabel.value = '메뉴 보러가기'
+    menuCardSubtitle.value = '오늘 등록된 메뉴가 없습니다.'
+    menuCardChip.value = 'NEW'
+    return
+  }
+
+  const menu = menus[slot]
   if (!menu?.name) {
     menuCardLabel.value = '메뉴 보러가기'
     menuCardSubtitle.value = '오늘 등록된 메뉴가 없습니다.'

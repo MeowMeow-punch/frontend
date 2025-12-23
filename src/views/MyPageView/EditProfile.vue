@@ -111,7 +111,8 @@ const handleClearGroup = () => {
   isGroupSearchOpen.value = false
 }
 
-const mapGenderToApi = (gender: string) => (gender === '남성' ? 'MALE' : 'FEMALE')
+const mapGenderToApi = (gender: string): 'MALE' | 'FEMALE' =>
+  gender === '남성' ? 'MALE' : 'FEMALE'
 
 const getNumberError = (value: string, label: string) => {
   if (!value) {
@@ -175,7 +176,7 @@ const handleSave = async () => {
       allergies: [...formData.allergies],
       isMarketing: formData.marketingConsent,
       groupId: formData.groupId ? String(formData.groupId) : undefined,
-    } as const
+    }
 
     const response = await updateProfile(profilePayload)
     if (import.meta.env.DEV) {

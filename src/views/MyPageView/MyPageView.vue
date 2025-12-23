@@ -104,10 +104,6 @@ const handleNicknameUpdate = () => {
     })
 }
 
-const handleSaveSubPage = () => {
-  currentSubPage.value = 'main'
-}
-
 const handleProfileSave = (profile: {
   nickname: string
   gender: string

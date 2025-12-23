@@ -149,8 +149,12 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
   } catch (err) {
     if (axios.isAxiosError<ApiErrorPayload>(err)) {
       const status = err.response?.status
-      const errorPayload = err.response?.data
+      const errorPayload = err.response?.data as unknown
       const contentType = err.response?.headers?.['content-type']
+      const payload =
+        typeof errorPayload === 'object' && errorPayload !== null
+          ? (errorPayload as ApiErrorPayload)
+          : undefined
       const rawBody =
         typeof errorPayload === 'string'
           ? errorPayload.slice(0, 500)
@@ -163,14 +167,13 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
         method,
         url: path,
         status,
-        code: errorPayload?.code,
-        message: errorPayload?.message,
+        code: payload?.code,
+        message: payload?.message,
         contentType,
         rawBody,
         hasAuthHeader,
       })
-      const message =
-        err.response?.data?.message || err.message || errorMessage || 'Request failed.'
+      const message = payload?.message || err.message || errorMessage || 'Request failed.'
       throw new Error(message)
     }
 

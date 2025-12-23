@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 // 1. 뷰 컴포넌트 임포트
 import HomeView from '@/views/HomeView/HomeView.vue'
-import AboutView from '@/views/AboutView/AboutView.vue'
 import SignupView from '@/views/SignupView/SignupView.vue'
 import LoginView from '@/views/LoginView/LoginView.vue'
 import CommunityView from '@/views/CommunityView/CommunityView.vue'
