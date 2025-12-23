@@ -1,36 +1,154 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowLeft, Heart, User, Share2, Link, MessageCircle, Twitter } from 'lucide-vue-next'
+import {
+  getCommunityDetail,
+  resolveCommunityImageUrl,
+  updateCommunityLike,
+  type CommunityDetailPost,
+  type CommunityRelatedPost,
+} from '@/services/communityService'
 
-type Article = {
-  id: number
-  category: string
-  title: string
-  author: string
-  date: string
-  views: number
-  likes: number
-  thumbnail: string
-  summary: string
-  readTime: string
-}
-
-const props = defineProps<{ article: Article }>()
+const props = defineProps<{ postId: number }>()
 const emit = defineEmits<{
   (event: 'back'): void
-  (event: 'select-article', article: Article): void
+  (event: 'select-article', postId: number): void
 }>()
 
 const isShareOpen = ref(false)
 const isMobile = ref(false)
+const isLoading = ref(false)
+const isLiking = ref(false)
+const post = ref<CommunityDetailPost | null>(null)
+const relatedPosts = ref<CommunityRelatedPost[]>([])
 const fallbackThumbnail =
   'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80'
+
+const categoryLabelMap: Record<string, string> = {
+  DIET: '다이어트',
+  EXERCISE: '운동',
+  EXCERCISE: '운동',
+  NUTRIENT: '영양',
+  DISEASE: '질병관리',
+}
 
 const handleResize = () => {
   if (typeof window !== 'undefined') {
     isMobile.value = window.innerWidth < 768
   }
 }
+
+const formatDate = (value?: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}.${month}.${day}`
+}
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+const contentHtml = computed(() => {
+  const raw = post.value?.content?.trim()
+  if (!raw) return ''
+  if (/<[a-z][\s\S]*>/i.test(raw)) {
+    return raw
+  }
+  return raw
+    .split(/\n{2,}/)
+    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, '<br/>')}</p>`)
+    .join('')
+})
+
+const formattedDate = computed(() => formatDate(post.value?.createdAt))
+const categoryLabel = computed(() =>
+  post.value ? (categoryLabelMap[post.value.category] ?? String(post.value.category)) : '',
+)
+
+const shareOptions = [
+  { name: '링크 복사', icon: Link, color: 'bg-gray-100 text-gray-900' },
+  { name: '카카오톡', icon: MessageCircle, color: 'bg-[#FEE500] text-[#000000]' },
+  { name: '트위터', icon: Twitter, color: 'bg-[#1DA1F2] text-white' },
+]
+
+const fetchDetail = async (postId: number) => {
+  isLoading.value = true
+  console.info('[CommunityDetail] detail request', { postId })
+  try {
+    const data = await getCommunityDetail(postId)
+    post.value = data?.post ?? null
+    relatedPosts.value = Array.isArray(data?.relatedPosts) ? data.relatedPosts : []
+    console.info('[CommunityDetail] detail mapped', {
+      postId,
+      related: relatedPosts.value.length,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Community detail fetch failed.'
+    console.warn('[CommunityDetail] detail error', { postId, message })
+    post.value = null
+    relatedPosts.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const toggleLike = async () => {
+  if (!post.value || isLiking.value) return
+  const nextLiked = !post.value.isLiked
+  isLiking.value = true
+  console.info('[CommunityDetail] like request', { postId: post.value.postId, isLiked: nextLiked })
+  try {
+    await updateCommunityLike(post.value.postId, nextLiked)
+    post.value = {
+      ...post.value,
+      isLiked: nextLiked,
+      likes: Math.max(0, post.value.likes + (nextLiked ? 1 : -1)),
+    }
+    console.info('[CommunityDetail] like updated', {
+      postId: post.value.postId,
+      likes: post.value.likes,
+      isLiked: post.value.isLiked,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Community like failed.'
+    console.warn('[CommunityDetail] like error', { message })
+    alert('좋아요 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
+  } finally {
+    isLiking.value = false
+  }
+}
+
+const handleImageError = (event: Event) => {
+  ;(event.target as HTMLImageElement).src = fallbackThumbnail
+}
+
+const selectRelated = (postId: number | null | undefined) => {
+  if (!postId) return
+  emit('select-article', postId)
+}
+
+const handleShareOption = (optionName: string) => {
+  if (optionName === '링크 복사' && typeof navigator !== 'undefined' && navigator.clipboard) {
+    navigator.clipboard.writeText(window.location.href).catch(() => null)
+  }
+  isShareOpen.value = false
+}
+
+watch(
+  () => props.postId,
+  (next) => {
+    fetchDetail(next)
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   handleResize()
@@ -40,84 +158,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
-
-const content = computed(
-  () => `
-    <p>건강한 식단 관리는 단순히 칼로리를 계산하는 것을 넘어서, 우리 몸에 필요한 영양소를 균형있게 섭취하는 것을 의미합니다.</p>
-    
-    <h3>1. ${props.article.category === '영양' ? '단백질의 중요성' : '건강한 식습관의 시작'}</h3>
-    <p>단백질은 우리 몸의 근육, 뼈, 피부를 구성하는 필수 영양소입니다. 하지만 무조건 많이 섭취한다고 좋은 것은 아닙니다. 개인의 체중, 활동량, 건강 상태에 따라 적절한 양을 섭취하는 것이 중요합니다.</p>
-    
-    <p>일반적으로 성인의 경우 체중 1kg당 0.8~1.2g의 단백질 섭취가 권장됩니다. 운동을 많이 하는 분들은 1.6~2.2g까지 섭취할 수 있습니다.</p>
-    
-    <h3>2. 양질의 단백질 선택하기</h3>
-    <p>단백질의 양만큼 중요한 것이 질입니다. 다음과 같은 양질의 단백질 급원을 선택하세요:</p>
-    
-    <ul>
-      <li><strong>동물성 단백질:</strong> 닭가슴살, 생선, 계란, 저지방 유제품</li>
-      <li><strong>식물성 단백질:</strong> 콩, 두부, 렌틸콩, 퀴노아</li>
-      <li><strong>보충제:</strong> 필요시 단백질 파우더 활용 (과도한 섭취는 주의)</li>
-    </ul>
-    
-    <h3>3. 단백질 과다 섭취의 위험성</h3>
-    <p>과도한 단백질 섭취는 신장에 부담을 줄 수 있으며, 칼슘 배출을 증가시켜 뼈 건강에 악영향을 미칠 수 있습니다. 특히 신장 질환이 있는 분들은 단백질 섭취량을 제한해야 합니다.</p>
-    
-    <h3>4. 균형잡힌 식단이 답입니다</h3>
-    <p>단백질만 집중하기보다는 탄수화물, 지방, 비타민, 미네랄을 모두 고려한 균형잡힌 식단을 구성하는 것이 가장 중요합니다.</p>
-    
-    <p>건강한 식습관은 하루아침에 만들어지지 않습니다. 작은 변화부터 시작해서 꾸준히 실천하는 것이 중요합니다.</p>
-  `,
-)
-
-const relatedArticles = ref<Article[]>([
-  {
-    id: 5,
-    category: '영양',
-    title: '탄수화물, 적으로만 생각하지 마세요',
-    author: '정영양 영양사',
-    date: '2024.11.10',
-    views: 8920,
-    likes: 650,
-    thumbnail:
-      'https://images.unsplash.com/photo-1642497393790-c5751b818e1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwZm9vZCUyMGluZ3JlZGllbnRzfGVufDF8fHx8MTc2MzI4NjA2OHww&ixlib=rb-4.1.0&q=80&w=1080',
-    summary: '탄수화물은 우리 몸의 주요 에너지원입니다. 올바른 탄수화물 선택 방법을 알아보세요.',
-    readTime: '4분',
-  },
-  {
-    id: 6,
-    category: '운동',
-    title: '근력운동과 영양의 완벽한 조합',
-    author: '강트레이너',
-    date: '2024.11.09',
-    views: 11200,
-    likes: 890,
-    thumbnail:
-      'https://images.unsplash.com/photo-1666819691716-827f78d892f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbWVhbCUyMGJvd2x8ZW58MXx8fHwxNzYzMjc3MjgzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    summary: '근력운동 효과를 극대화하는 식단 관리법을 소개합니다.',
-    readTime: '6분',
-  },
-])
-
-const shareOptions = [
-  { name: '링크 복사', icon: Link, color: 'bg-gray-100 text-gray-900' },
-  { name: '카카오톡', icon: MessageCircle, color: 'bg-[#FEE500] text-[#000000]' },
-  { name: '트위터', icon: Twitter, color: 'bg-[#1DA1F2] text-white' },
-]
-
-const handleImageError = (event: Event) => {
-  ;(event.target as HTMLImageElement).src = fallbackThumbnail
-}
-
-const selectRelated = (article: Article) => {
-  emit('select-article', article)
-}
-
-const handleShareOption = (optionName: string) => {
-  if (optionName === '링크 복사' && typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(window.location.href).catch(() => null)
-  }
-  isShareOpen.value = false
-}
 </script>
 
 <template>
@@ -144,102 +184,123 @@ const handleShareOption = (optionName: string) => {
     </div>
 
     <div class="mx-auto max-w-3xl px-5 py-8 md:py-12">
-      <div class="mb-8 text-center md:mb-10">
-        <div class="mb-4 flex items-center justify-center gap-2">
-          <span class="text-[14px] font-semibold text-[#00C73C]">
-            {{ props.article.category }}
-          </span>
-          <span class="h-1 w-1 rounded-full bg-[var(--gray-300)]" />
-          <span class="text-[14px] text-[var(--gray-500)]">
-            {{ props.article.date }}
-          </span>
-        </div>
-
-        <h1
-          class="mb-6 break-keep text-[26px] font-bold leading-[1.3] text-[var(--gray-900)] md:text-[32px]"
-        >
-          {{ props.article.title }}
-        </h1>
-
-        <div class="flex items-center justify-center gap-3">
-          <div
-            class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--gray-100)]"
-          >
-            <User class="h-5 w-5 text-[var(--gray-500)]" />
-          </div>
-          <div class="text-left">
-            <p class="text-[14px] font-semibold text-[var(--gray-900)]">
-              {{ props.article.author }}
-            </p>
-            <p class="text-[12px] text-[var(--gray-500)]">전문 에디터</p>
-          </div>
-        </div>
+      <div
+        v-if="isLoading"
+        class="rounded-2xl border border-[var(--gray-200)] bg-[var(--gray-50)] p-16 text-center"
+      >
+        <p class="text-[15px] font-normal text-[var(--gray-600)]">불러오는 중...</p>
       </div>
+
+      <template v-else-if="post">
+        <div class="mb-8 text-center md:mb-10">
+          <div class="mb-4 flex items-center justify-center gap-2">
+            <span class="text-[14px] font-semibold text-[#00C73C]">
+              {{ categoryLabel }}
+            </span>
+            <span class="h-1 w-1 rounded-full bg-[var(--gray-300)]" />
+            <span class="text-[14px] text-[var(--gray-500)]">
+              {{ formattedDate }}
+            </span>
+          </div>
+
+          <h1
+            class="mb-6 break-keep text-[26px] font-bold leading-[1.3] text-[var(--gray-900)] md:text-[32px]"
+          >
+            {{ post.title }}
+          </h1>
+
+          <div class="flex items-center justify-center gap-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--gray-100)]"
+            >
+              <User class="h-5 w-5 text-[var(--gray-500)]" />
+            </div>
+            <div class="text-left">
+              <p class="text-[14px] font-semibold text-[var(--gray-900)]">
+                {{ post.writer }}
+              </p>
+              <p class="text-[12px] text-[var(--gray-500)]">전문 에디터</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="mb-10 aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--gray-100)] shadow-sm"
+        >
+          <img
+            :src="resolveCommunityImageUrl(post.thumbnailUrl) || fallbackThumbnail"
+            :alt="post.title"
+            class="h-full w-full object-cover"
+            @error="handleImageError"
+          />
+        </div>
+
+        <div class="mb-12">
+          <div
+            class="prose prose-lg prose-p:text-[var(--gray-800)] prose-headings:text-[var(--gray-900)] max-w-none"
+            style="line-height: 1.75"
+            v-html="contentHtml"
+          />
+        </div>
+
+        <div class="mb-16 flex justify-center">
+          <button
+            class="group flex flex-col items-center gap-2 transition-all disabled:cursor-not-allowed"
+            :disabled="isLiking"
+            @click="toggleLike"
+          >
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gray-200)] bg-white text-[var(--gray-400)] shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF3B30] group-hover:text-[#FF3B30]"
+              :class="post.isLiked ? 'border-[#FF3B30] text-[#FF3B30]' : ''"
+            >
+              <Heart class="h-7 w-7 fill-current transition-colors" />
+            </div>
+            <span class="text-[13px] text-[var(--gray-500)] group-hover:text-[var(--gray-900)]">
+              {{ post.likes.toLocaleString() }}
+            </span>
+          </button>
+        </div>
+
+        <div class="border-t border-[var(--gray-100)] pt-10">
+          <h2 class="mb-6 text-[18px] font-bold text-[var(--gray-900)]">이 글과 함께 많이 본 글</h2>
+          <div class="grid gap-6">
+            <div
+              v-for="relatedArticle in relatedPosts"
+              :key="relatedArticle.postId ?? relatedArticle.id"
+              @click="selectRelated(relatedArticle.postId ?? relatedArticle.id ?? 0)"
+              class="group flex cursor-pointer items-center gap-5"
+            >
+              <div class="min-w-0 flex-1">
+                <span class="mb-1 block text-[12px] font-semibold text-[#00C73C]">
+                  {{ categoryLabelMap[relatedArticle.category] ?? String(relatedArticle.category) }}
+                </span>
+                <h3
+                  class="mb-1 text-[16px] font-bold text-[var(--gray-900)] decoration-[var(--gray-300)] underline-offset-4 group-hover:underline"
+                >
+                  {{ relatedArticle.title }}
+                </h3>
+                <p class="line-clamp-1 text-[14px] text-[var(--gray-500)]">
+                  {{ relatedArticle.previewText }}
+                </p>
+              </div>
+              <div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--gray-100)]">
+                <img
+                  :src="resolveCommunityImageUrl(relatedArticle.thumbnailUrl) || fallbackThumbnail"
+                  :alt="relatedArticle.title"
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  @error="handleImageError"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
 
       <div
-        class="mb-10 aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--gray-100)] shadow-sm"
+        v-else
+        class="rounded-2xl border border-[var(--gray-200)] bg-[var(--gray-50)] p-16 text-center"
       >
-        <img
-          :src="props.article.thumbnail"
-          :alt="props.article.title"
-          class="h-full w-full object-cover"
-          @error="handleImageError"
-        />
-      </div>
-
-      <div class="mb-12">
-        <div
-          class="prose prose-lg prose-p:text-[var(--gray-800)] prose-headings:text-[var(--gray-900)] max-w-none"
-          style="line-height: 1.75"
-          v-html="content"
-        />
-      </div>
-
-      <div class="mb-16 flex justify-center">
-        <button class="group flex flex-col items-center gap-2 transition-all">
-          <div
-            class="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gray-200)] bg-white text-[var(--gray-400)] shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF3B30] group-hover:text-[#FF3B30]"
-          >
-            <Heart class="h-7 w-7 fill-current transition-colors" />
-          </div>
-          <span class="text-[13px] text-[var(--gray-500)] group-hover:text-[var(--gray-900)]">
-            {{ props.article.likes.toLocaleString() }}
-          </span>
-        </button>
-      </div>
-
-      <div class="border-t border-[var(--gray-100)] pt-10">
-        <h2 class="mb-6 text-[18px] font-bold text-[var(--gray-900)]">이 글과 함께 많이 본 글</h2>
-        <div class="grid gap-6">
-          <div
-            v-for="relatedArticle in relatedArticles"
-            :key="relatedArticle.id"
-            @click="selectRelated(relatedArticle)"
-            class="group flex cursor-pointer items-center gap-5"
-          >
-            <div class="min-w-0 flex-1">
-              <span class="mb-1 block text-[12px] font-semibold text-[#00C73C]">
-                {{ relatedArticle.category }}
-              </span>
-              <h3
-                class="mb-1 text-[16px] font-bold text-[var(--gray-900)] decoration-[var(--gray-300)] underline-offset-4 group-hover:underline"
-              >
-                {{ relatedArticle.title }}
-              </h3>
-              <p class="line-clamp-1 text-[14px] text-[var(--gray-500)]">
-                {{ relatedArticle.summary }}
-              </p>
-            </div>
-            <div class="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--gray-100)]">
-              <img
-                :src="relatedArticle.thumbnail"
-                :alt="relatedArticle.title"
-                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                @error="handleImageError"
-              />
-            </div>
-          </div>
-        </div>
+        <p class="text-[15px] font-normal text-[var(--gray-600)]">게시글을 불러올 수 없습니다.</p>
       </div>
     </div>
 
