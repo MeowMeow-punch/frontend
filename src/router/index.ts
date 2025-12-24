@@ -79,6 +79,18 @@ const router = createRouter({
       name: 'menu-recommendation',
       component: MenuRecommendationView,
     },
+    {
+      path: '/error/500',
+      name: 'server-error',
+      component: () => import('@/views/Error/ServerErrorView.vue'),
+      meta: { hideNav: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/Error/NotFoundView.vue'),
+      meta: { hideNav: true },
+    },
   ],
 })
 
