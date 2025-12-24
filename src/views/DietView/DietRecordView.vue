@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Minus, Plus, Search, Utensils, X } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Minus,
+  Plus,
+  Search,
+  Utensils,
+  X,
+} from 'lucide-vue-next'
 import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 import { useDietStore } from '@/composables/useDietStore'
 import {
@@ -29,8 +38,36 @@ const mealTimes: Array<{ id: MealTime; label: string; time: string; icon: string
 ]
 
 const FOOD_PAGE_SIZE = 9
+const MAX_VISIBLE_CATEGORIES = 7
 
-const categories = ['전체', '주식', '단백질', '채소', '유제품', '과일', '기타']
+const categories = [
+  '전체',
+  '곡류 및 서류',
+  '과일',
+  '구이',
+  '국 및 탕',
+  '김치',
+  '나물',
+  '두류 및 견과',
+  '면 및 만두',
+  '밥',
+  '볶음',
+  '부침',
+  '빵 및 과자',
+  '생채 및 무침',
+  '어류 및 육류',
+  '유제품류 및 빙과',
+  '음료 및 차',
+  '장 및 양념',
+  '장아찌 및 절임',
+  '젓갈',
+  '조림',
+  '죽 및 스프',
+  '찌개 및 전골',
+  '찜',
+  '채소 및 해조류',
+  '튀김',
+]
 
 const foods = ref<FoodItem[]>([])
 
@@ -67,9 +104,11 @@ const normalizeApiTime = (value: string) => {
 }
 
 const normalizeFoodName = (value: string) => value.trim().toLowerCase()
+const getCategoryQuery = () => (activeCategory.value === '전체' ? undefined : activeCategory.value)
 
 const searchQuery = ref('')
 const activeCategory = ref('전체')
+const isCategoryExpanded = ref(false)
 const selectedMealTime = ref<MealTime>('lunch')
 const selectedFoods = ref<SelectedFood[]>([])
 const editingMealId = ref<number | null>(null)
@@ -140,11 +179,12 @@ const loadMealDetail = async (dietId: number) => {
 const loadFoods = async (keyword: string) => {
   const requestId = ++foodRequestId
   const trimmedKeyword = keyword.trim()
+  const category = getCategoryQuery()
 
   try {
     const data = trimmedKeyword
-      ? await searchFoods({ keyword: trimmedKeyword, size: FOOD_PAGE_SIZE })
-      : await getFoodList({ size: FOOD_PAGE_SIZE })
+      ? await searchFoods({ keyword: trimmedKeyword, size: FOOD_PAGE_SIZE, category })
+      : await getFoodList({ size: FOOD_PAGE_SIZE, category })
 
     if (requestId !== foodRequestId) return
     foods.value = (data.foods ?? []).map(mapFoodItem)
@@ -195,6 +235,16 @@ watch(searchQuery, (next) => {
   scheduleFoodLoad(next)
 })
 
+watch(activeCategory, () => {
+  void loadFoods(searchQuery.value)
+})
+
+const visibleCategories = computed(() =>
+  isCategoryExpanded.value ? categories : categories.slice(0, MAX_VISIBLE_CATEGORIES),
+)
+
+const showCategoryToggle = computed(() => categories.length > MAX_VISIBLE_CATEGORIES)
+
 function initFromRoute() {
   const idRaw = route.query.id
   if (typeof idRaw === 'string' && idRaw.trim() !== '') {
@@ -228,17 +278,7 @@ onMounted(() => {
   void loadFoods(searchQuery.value)
 })
 
-const filteredFoods = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  return foods.value.filter((food) => {
-    const matchCategory = activeCategory.value === '전체' || food.category === activeCategory.value
-    const matchQuery =
-      query === '' ||
-      food.name.toLowerCase().includes(query) ||
-      food.category.toLowerCase().includes(query)
-    return matchCategory && matchQuery
-  })
-})
+const filteredFoods = computed(() => foods.value)
 
 const totalNutrition = computed(() => {
   return selectedFoods.value.reduce(
@@ -400,20 +440,39 @@ function goBack() {
                 </button>
               </div>
 
-              <div class="hide-scrollbar flex gap-2 overflow-x-auto pb-2">
-                <button
-                  v-for="cat in categories"
-                  :key="cat"
-                  type="button"
-                  class="whitespace-nowrap rounded-full px-4 py-2 text-[14px] font-medium transition-colors"
+              <div class="flex items-start gap-2">
+                <div
+                  class="hide-scrollbar flex flex-1 gap-2 pb-2"
                   :class="
-                    activeCategory === cat
-                      ? 'bg-[var(--gray-900)] text-white'
-                      : 'bg-[var(--gray-50)] text-[var(--gray-600)] hover:bg-[var(--gray-100)]'
+                    isCategoryExpanded
+                      ? 'flex-wrap overflow-visible'
+                      : 'flex-nowrap overflow-hidden'
                   "
-                  @click="activeCategory = cat"
                 >
-                  {{ cat }}
+                  <button
+                    v-for="cat in visibleCategories"
+                    :key="cat"
+                    type="button"
+                    class="flex-none whitespace-nowrap rounded-full px-4 py-2 text-[14px] font-medium transition-colors"
+                    :class="
+                      activeCategory === cat
+                        ? 'bg-[var(--gray-900)] text-white'
+                        : 'bg-[var(--gray-50)] text-[var(--gray-600)] hover:bg-[var(--gray-100)]'
+                    "
+                    @click="activeCategory = cat"
+                  >
+                    {{ cat }}
+                  </button>
+                </div>
+                <button
+                  v-if="showCategoryToggle"
+                  type="button"
+                  class="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gray-200)] text-[var(--gray-600)] transition-colors hover:bg-[var(--gray-50)] hover:text-[var(--gray-900)]"
+                  :aria-label="isCategoryExpanded ? '카테고리 접기' : '카테고리 펼치기'"
+                  @click="isCategoryExpanded = !isCategoryExpanded"
+                >
+                  <ChevronUp v-if="isCategoryExpanded" class="h-4 w-4" />
+                  <ChevronDown v-else class="h-4 w-4" />
                 </button>
               </div>
             </div>
