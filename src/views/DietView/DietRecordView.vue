@@ -37,7 +37,7 @@ const mealTimes: Array<{ id: MealTime; label: string; time: string; icon: string
   { id: 'snack', label: '간식', time: '언제든', icon: '🍪' },
 ]
 
-const FOOD_PAGE_SIZE = 9
+const FOOD_PAGE_SIZE = 20
 const MAX_VISIBLE_CATEGORIES = 7
 
 const categories = [
