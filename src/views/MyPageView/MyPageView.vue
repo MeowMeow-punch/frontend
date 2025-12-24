@@ -26,7 +26,6 @@ const nickname = ref('건강한하루')
 const tempNickname = ref(nickname.value)
 const isEditingNickname = ref(false)
 const currentSubPage = ref<SubPage>('main')
-const progressPercentOverride = ref<number | null>(null)
 const isDev = import.meta.env.DEV
 
 const userInfo = reactive({
@@ -60,17 +59,6 @@ const mapGenderLabel = (gender: string) => (gender === 'MALE' ? '남성' : '여�
 const isWeightFocused = computed(
   () => userInfo.userType === '다이어트' || userInfo.userType === '체중증량',
 )
-const weightChange = computed(() => userInfo.currentWeight - userInfo.startWeight)
-const progressPercentage = computed(() => {
-  if (progressPercentOverride.value !== null) {
-    return progressPercentOverride.value
-  }
-  const denominator = userInfo.startWeight - userInfo.targetWeight
-  if (!denominator) {
-    return 0
-  }
-  return ((userInfo.startWeight - userInfo.currentWeight) / denominator) * 100
-})
 const weeklyMealRate = computed(() => {
   if (!userInfo.thisWeekTargetMealCount) {
     return 0
@@ -400,35 +388,17 @@ onMounted(loadUserProfile)
               <div class="mb-2 flex items-center gap-2">
                 <Scale class="h-4 w-4 text-[#00C73C]" />
                 <span class="text-[13px] text-[var(--gray-600)]" style="font-weight: 500">
-                  시작 체중
+                  체중
                 </span>
               </div>
               <p class="text-[24px] text-[var(--gray-900)]" style="font-weight: 700">
-                {{ userInfo.startWeight }}
+                {{ userInfo.currentWeight }}
                 <span class="ml-1 text-[14px] text-[var(--gray-600)]" style="font-weight: 400">
                   kg
                 </span>
               </p>
               <p class="mt-1 text-[12px] text-[var(--gray-500)]" style="font-weight: 400">
                 목표 {{ userInfo.targetWeight }}kg
-              </p>
-            </div>
-
-            <div>
-              <div class="mb-2 flex items-center gap-2">
-                <TrendingDown class="h-4 w-4 text-[#00C73C]" />
-                <span class="text-[13px] text-[var(--gray-600)]" style="font-weight: 500">
-                  체중 변화
-                </span>
-              </div>
-              <p class="text-[24px]" style="font-weight: 700; color: #00c73c">
-                {{ weightChange >= 0 ? '+' : '' }}{{ weightChange.toFixed(1) }}
-                <span class="ml-1 text-[14px] text-[var(--gray-600)]" style="font-weight: 400">
-                  kg
-                </span>
-              </p>
-              <p class="mt-1 text-[12px] text-[var(--gray-500)]" style="font-weight: 400">
-                달성률 {{ progressPercentage.toFixed(0) }}%
               </p>
             </div>
           </template>

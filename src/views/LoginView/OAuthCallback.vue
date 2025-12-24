@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login, type OAuthProvider } from '@/services/authService'
+import { setRegisterToken } from '@/services/registerTokenStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,11 +35,8 @@ onMounted(async () => {
       router.replace('/')
     } else if (result.status === 'NEED_REGISTER') {
       console.log('[OAuthCallback] Need registration', result.data)
-      // 회원가입 페이지로 이동하며 registerToken을 state로 전달
-      router.replace({
-        path: '/regist',
-        state: { registerToken: result.data.registerToken },
-      })
+      setRegisterToken(result.data.registerToken)
+      router.replace('/regist')
     }
   } catch (error) {
     console.error('[OAuthCallback] Login failed', error)

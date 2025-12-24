@@ -68,16 +68,14 @@ const banners: Banner[] = [
   },
 ]
 
-const totalCalories = ref(1850)
-const targetCalories = ref(2000)
-const aiMessage = ref(
-  '단백질 섭취가 목표보다 25g 부족해요. 저녁에 고단백 저지방 식품을 추가해보세요.',
-)
+const totalCalories = ref(0)
+const targetCalories = ref(0)
+const aiMessage = ref('')
 
 const nutritionData = ref<NutritionItem[]>([
-  { name: '탄수화물', current: 250, target: 280 },
-  { name: '단백질', current: 95, target: 120 },
-  { name: '지방', current: 82, target: 70 },
+  { name: '탄수화물', current: 0, target: 0 },
+  { name: '단백질', current: 0, target: 0 },
+  { name: '지방', current: 0, target: 0 },
 ])
 
 const recommendedMeals = ref<RecommendedMeal[]>([])
@@ -85,9 +83,9 @@ const weeklyAverageCalories = ref('0kcal')
 const weeklyAchievement = ref('0%')
 const weeklyStreak = ref('0일')
 const menuCardLabel = ref('메뉴 보러가기')
-const menuCardSubtitle = ref('오늘 우리 회사 메뉴는 무엇일까요?')
+const menuCardSubtitle = ref('오늘 등록된 메뉴가 없습니다.')
 const menuCardChip = ref('NEW')
-const menuCardFooter = ref('SSAFY 14기 · 23명')
+const menuCardFooter = ref('소속 미지정')
 
 const mealTypeLabels: Record<DietMealType, string> = {
   BREAKFAST: '아침',

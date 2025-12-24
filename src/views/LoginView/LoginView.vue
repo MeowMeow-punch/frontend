@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import type { OAuthProvider } from '@/services/authService'
 
-const router = useRouter()
 const isSubmitting = ref(false)
 
 const handleLogin = async (provider: OAuthProvider) => {
@@ -30,10 +28,6 @@ const handleLogin = async (provider: OAuthProvider) => {
 
   // TODO: 구글/네이버 로그인 구현 예정
   alert('준비 중인 기능입니다.')
-}
-
-const handleSignup = () => {
-  router.push('/regist')
 }
 </script>
 
@@ -144,19 +138,6 @@ const handleSignup = () => {
           </svg>
           <span>네이버 로그인</span>
         </button>
-      </div>
-
-      <div class="pt-8 text-center">
-        <p class="text-muted-foreground">
-          계정이 없으신가요?
-          <button
-            type="button"
-            @click="handleSignup"
-            class="text-[var(--main-300)] transition hover:underline"
-          >
-            회원가입
-          </button>
-        </p>
       </div>
     </div>
   </div>
