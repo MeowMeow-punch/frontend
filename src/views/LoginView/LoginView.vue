@@ -28,7 +28,32 @@ const handleLogin = async (provider: OAuthProvider) => {
     return
   }
 
-  // TODO: 구글/네이버 로그인 구현 예정
+  // TODO: 구글 로그인 구현 예정
+
+  if (provider === 'NAVER') {
+    const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
+    if (!clientId) {
+      alert('네이버 클라이언트 ID가 설정되지 않았습니다.')
+      console.error('VITE_NAVER_CLIENT_ID is missing in .env')
+      return
+    }
+
+    const redirectUri = `${window.location.origin}/oauth/callback/naver`
+
+    // CSRF 방지를 위한 State 생성 (Client-Side)
+    const state = Array.from(window.crypto.getRandomValues(new Uint32Array(1)))
+      .map((n) => n.toString(36))
+      .join('')
+
+    sessionStorage.setItem('naver_oauth_state', state)
+
+    const url = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`
+
+    console.log('[Login] Redirecting to Naver:', url)
+    window.location.href = url
+    return
+  }
+
   alert('준비 중인 기능입니다.')
 }
 
