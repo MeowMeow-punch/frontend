@@ -238,6 +238,7 @@ export const mapFoodItem = (item: DietFoodItemResponse): FoodItem => {
 type FoodListParams = {
   cursor?: string
   size?: number
+  category?: string
 }
 
 type FoodSearchParams = FoodListParams & {
@@ -251,6 +252,9 @@ const buildFoodQuery = (params: FoodListParams) => {
   }
   if (params.size !== undefined) {
     query.size = params.size
+  }
+  if (params.category) {
+    query.category = params.category
   }
   return query
 }

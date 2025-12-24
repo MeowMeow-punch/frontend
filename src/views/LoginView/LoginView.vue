@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Utensils } from 'lucide-vue-next'
 import type { OAuthProvider } from '@/services/authService'
 
 const isSubmitting = ref(false)
@@ -86,20 +87,7 @@ const handleLogin = async (provider: OAuthProvider) => {
       <div class="mb-12 text-center">
         <div class="mb-6 flex justify-center">
           <div class="rounded-3xl bg-[var(--main-300)] p-5 shadow-sm">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-14 w-14 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 6v.01M12 12v.01M12 18v.01M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
+            <Utensils class="h-14 w-14 text-white" :stroke-width="2.5" />
           </div>
         </div>
         <h1
