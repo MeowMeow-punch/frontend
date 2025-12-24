@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-type BannerTheme = 'green' | 'purple'
+type BannerTheme = 'green' | 'purple' | 'orange'
 
 export interface Banner {
   id: number
@@ -192,6 +192,25 @@ onBeforeUnmount(() => {
           👟
         </div>
       </div>
+
+      <div
+        v-else-if="banner.theme === 'orange'"
+        class="absolute inset-0 overflow-hidden bg-[#FFF4E6]"
+      >
+        <div
+          class="absolute left-[20%] top-[-10%] h-[400px] w-[400px] rounded-full bg-[#FFE8CC] blur-[80px]"
+        />
+        <div
+          class="animate_float absolute right-[10%] top-[15%] rotate-[15deg] text-[90px] drop-shadow-xl"
+        >
+          🍕
+        </div>
+        <div
+          class="animate_float_delayed absolute right-[25%] top-[10%] -rotate-[10deg] text-[50px] opacity-80 drop-shadow-lg"
+        >
+          🍔
+        </div>
+      </div>
     </div>
 
     <div class="relative z-20 flex max-w-[65%] flex-col items-start">
@@ -235,7 +254,7 @@ onBeforeUnmount(() => {
         v-for="(_, index) in banners"
         :key="index"
         class="h-1.5 rounded-full transition-all duration-300"
-        :class="index === currentBannerIndex ? 'w-4 bg-gray-800' : 'w-1.5 bg-gray-400/50'"
+        :class="index === currentBannerIndex ? 'w-4 bg-gray-800' : 'bg-gray-400/50 w-1.5'"
         @click.stop="() => goToBanner(index)"
       />
     </div>

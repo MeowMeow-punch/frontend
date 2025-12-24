@@ -8,6 +8,7 @@ import MyPageView from '@/views/MyPageView/MyPageView.vue'
 import DietView from '@/views/DietView/DietView.vue'
 import DietRecordView from '@/views/DietView/DietRecordView.vue'
 import DietCafeteriaView from '@/views/DietView/DietCafeteriaView.vue'
+import MenuRecommendationView from '@/views/MenuRecommendationView.vue'
 import { isAuthenticated } from '@/services/authService'
 import { getRegisterToken } from '@/services/registerTokenStore'
 
@@ -65,6 +66,11 @@ const router = createRouter({
       name: 'diet-cafeteria',
       component: DietCafeteriaView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/menu-recommendation',
+      name: 'menu-recommendation',
+      component: MenuRecommendationView,
     },
   ],
 })

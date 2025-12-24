@@ -99,6 +99,15 @@ const banners: Banner[] = [
     available: true,
   },
   {
+    id: 2,
+    title: '지금 뭐 먹지?',
+    subtitle: '랜덤 메뉴 추천받고 고민 해결!',
+    buttonText: '추천받기',
+    route: '/menu-recommendation',
+    theme: 'orange',
+    available: true,
+  },
+  {
     id: 3,
     title: '그룹 챌린지',
     subtitle: '친구들과 함께 만드는 건강한 습관',
