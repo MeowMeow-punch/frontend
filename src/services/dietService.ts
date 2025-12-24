@@ -22,6 +22,7 @@ type DietRecommendation = {
     protein: number
     fat: number
   } | null
+  sourceType?: 'WELSTORY' | 'FOOD_DB' | string | null
 }
 
 export type DietMainData = {
@@ -198,7 +199,12 @@ const normalizePath = (path: string) => (path.startsWith('/') ? path.slice(1) : 
 
 export const resolveDietImageUrl = (path?: string | null) => {
   if (!path) return ''
-  if (/^https?:\/\//i.test(path)) return path
+  if (/^https?:\/\//i.test(path)) {
+    if (/^http:\/\/samsungwelstory\.com/i.test(path)) {
+      return path.replace(/^http:\/\//i, 'https://')
+    }
+    return path
+  }
   if (!IMAGE_BASE_URL) return path
   return `${normalizeBase(IMAGE_BASE_URL)}/${normalizePath(path)}`
 }
@@ -303,6 +309,20 @@ export const getDietDetail = async (dietId: number) => {
   })
 
   return response.data
+}
+
+export const registerRecommendedDiet = async (recommendationId: number) => {
+  const response = await apiFetch<{
+    code: number
+    message: string
+    data?: { myDietId: number }
+  }>(`/diet/recommendation/${recommendationId}`, {
+    method: 'POST',
+    withAuth: true,
+    errorMessage: 'Recommendation register failed.',
+  })
+
+  return response
 }
 
 export const createDiet = async (payload: DietRequestPayload) => {

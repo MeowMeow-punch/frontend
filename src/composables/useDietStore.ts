@@ -4,6 +4,7 @@ import type { MealDraft, MealTime } from '@/types/diet'
 const selectedDate = ref<Date>(new Date())
 const draftMeal = ref<MealDraft | null>(null)
 const draftSearch = ref<{ keyword: string; time?: MealTime } | null>(null)
+const cafeteriaMealIds = ref<Set<number>>(new Set())
 
 function setDraftMeal(next: MealDraft | null) {
   draftMeal.value = next
@@ -25,6 +26,12 @@ function consumeDraftSearch() {
   return next
 }
 
+function markCafeteriaMeal(mealId: number) {
+  const next = new Set(cafeteriaMealIds.value)
+  next.add(mealId)
+  cafeteriaMealIds.value = next
+}
+
 export function useDietStore() {
   return {
     selectedDate,
@@ -32,5 +39,7 @@ export function useDietStore() {
     consumeDraftMeal,
     setDraftSearch,
     consumeDraftSearch,
+    cafeteriaMealIds,
+    markCafeteriaMeal,
   }
 }

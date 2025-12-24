@@ -36,7 +36,7 @@ import { getMealLabel, getMealTime } from '@/utils/diet/dietUtils'
 import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
-const { selectedDate } = useDietStore()
+const { selectedDate, cafeteriaMealIds, markCafeteriaMeal } = useDietStore()
 
 const selectedMealId = ref<number | null>(null)
 const selectedMealDetail = ref<DietDetailInfo | null>(null)
@@ -68,11 +68,30 @@ const formatDate = (date: Date) => {
 const toNumber = (value: number | null | undefined) =>
   Number.isFinite(value ?? NaN) ? Number(value) : 0
 
+const isCafeteriaThumbnail = (urls?: Array<string | null> | null) =>
+  (urls ?? []).some((url) => (url ?? '').toLowerCase().includes('welstory'))
+
+const thumbnailOverrides = ref<Record<number, string[]>>({})
+const prefetchingThumbnailIds = ref<Set<number>>(new Set())
+
+const setThumbnailOverride = (mealId: number, thumbnails: string[]) => {
+  if (thumbnails.length === 0) return
+  thumbnailOverrides.value = { ...thumbnailOverrides.value, [mealId]: thumbnails }
+}
+
+const resolveMealThumbnails = (meal: TodayDietInfo) => {
+  const override = thumbnailOverrides.value[meal.myDietId]
+  if (override && override.length > 0) return override
+  return (meal.thumbnailUrls ?? []).map(resolveDietImageUrl).filter(Boolean)
+}
+
 const mealsForSelectedDate = computed(() =>
   dailyMeals.value.map((meal) => {
     const localType = MEAL_TYPE_TO_LOCAL[meal.mealType] ?? 'lunch'
     const timeText = meal.time ? meal.time.slice(0, 5) : getMealTime(localType)
     const nutrients = meal.nutrients ?? { carbs: 0, protein: 0, fat: 0 }
+    const isCafeteria =
+      isCafeteriaThumbnail(meal.thumbnailUrls) || cafeteriaMealIds.value.has(meal.myDietId)
     return {
       id: meal.myDietId,
       type: localType,
@@ -80,7 +99,8 @@ const mealsForSelectedDate = computed(() =>
       title: meal.name,
       calorie: meal.calorie,
       nutrients,
-      thumbnails: (meal.thumbnailUrls ?? []).map(resolveDietImageUrl).filter(Boolean),
+      isCafeteria,
+      thumbnails: resolveMealThumbnails(meal),
     }
   }),
 )
@@ -90,12 +110,20 @@ const selectedMeal = computed(() => {
   if (detail) {
     const localType = MEAL_TYPE_TO_LOCAL[detail.mealType] ?? 'lunch'
     const timeText = detail.time ? detail.time.slice(0, 5) : getMealTime(localType)
+    const isCafeteria = !detail.isEditable
+    const detailThumbnails = (detail.foods ?? [])
+      .map((food) => resolveDietImageUrl(food.thumbnailUrl))
+      .filter(Boolean)
+    if (detailThumbnails.length > 0) {
+      setThumbnailOverride(detail.myDietId, detailThumbnails)
+    }
     return {
       id: detail.myDietId,
       type: localType,
       timeText,
       title: detail.title,
       editable: detail.isEditable,
+      isCafeteria,
       nutrition: {
         calories: detail.calorie,
         carbs: detail.nutrients?.carbs ?? 0,
@@ -119,12 +147,14 @@ const selectedMeal = computed(() => {
   if (selectedMealId.value) {
     const fallbackMeal = mealsForSelectedDate.value.find((meal) => meal.id === selectedMealId.value)
     if (!fallbackMeal) return null
+    const isCafeteria = fallbackMeal.isCafeteria ?? false
     return {
       id: fallbackMeal.id,
       type: fallbackMeal.type,
       timeText: fallbackMeal.timeText,
       title: fallbackMeal.title,
-      editable: true,
+      editable: !isCafeteria,
+      isCafeteria,
       nutrition: {
         calories: fallbackMeal.calorie,
         carbs: fallbackMeal.nutrients.carbs,
@@ -273,6 +303,45 @@ function onSelectDate(date: Date) {
   selectedDate.value = date
 }
 
+const prefetchMealThumbnails = async (meals: TodayDietInfo[]) => {
+  const targets = meals.filter((meal) => {
+    const hasThumb = (meal.thumbnailUrls ?? []).length > 0
+    const hasOverride = Boolean(thumbnailOverrides.value[meal.myDietId]?.length)
+    const isPending = prefetchingThumbnailIds.value.has(meal.myDietId)
+    return !hasThumb && !hasOverride && !isPending
+  })
+
+  if (targets.length === 0) return
+
+  const nextPending = new Set(prefetchingThumbnailIds.value)
+  targets.forEach((meal) => nextPending.add(meal.myDietId))
+  prefetchingThumbnailIds.value = nextPending
+
+  await Promise.allSettled(
+    targets.map(async (meal) => {
+      try {
+        const response = await getDietDetail(meal.myDietId)
+        const detail = response?.dietInfo
+        if (!detail) return
+        const thumbnails = (detail.foods ?? [])
+          .map((food) => resolveDietImageUrl(food.thumbnailUrl))
+          .filter(Boolean)
+        setThumbnailOverride(meal.myDietId, thumbnails)
+        if (detail.isEditable === false) {
+          markCafeteriaMeal(meal.myDietId)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Diet detail prefetch failed.'
+        console.warn('[DietView] diet detail prefetch failed', { mealId: meal.myDietId, message })
+      }
+    }),
+  )
+
+  const remaining = new Set(prefetchingThumbnailIds.value)
+  targets.forEach((meal) => remaining.delete(meal.myDietId))
+  prefetchingThumbnailIds.value = remaining
+}
+
 const fetchDailyData = async (date: Date) => {
   const dateString = formatDate(date)
   isLoadingDaily.value = true
@@ -285,10 +354,12 @@ const fetchDailyData = async (date: Date) => {
 
     if (dailyResult.status === 'fulfilled') {
       const data = dailyResult.value
+      console.info('[DietView] daily data response', data)
       dailySummary.value = data.summaryInfo ?? null
       dailyMeals.value = Array.isArray(data.todayDietInfo) ? data.todayDietInfo : []
       restaurantMenus.value = data.todayRestaurantMenu ?? {}
       aiFeedbackMessage.value = data.aiFeedbackInfo?.message ?? 'AI 피드백은 준비 중입니다.'
+      void prefetchMealThumbnails(dailyMeals.value)
       console.info('[DietView] daily data mapped', {
         date: dateString,
         meals: dailyMeals.value.length,
@@ -323,7 +394,11 @@ const loadMealDetail = async (mealId: number) => {
   console.info('[DietView] diet detail request', { mealId })
   try {
     const response = await getDietDetail(mealId)
+    console.info('[DietView] diet detail response', response)
     selectedMealDetail.value = response?.dietInfo ?? null
+    if (selectedMealDetail.value?.isEditable === false) {
+      markCafeteriaMeal(mealId)
+    }
     console.info('[DietView] diet detail mapped', {
       mealId,
       foods: selectedMealDetail.value?.foods?.length ?? 0,
@@ -538,6 +613,12 @@ watch(
                       class="rounded bg-[#E5F9EB] px-2 py-0.5 text-[12px] font-semibold text-[#00C73C]"
                     >
                       {{ getMealLabel(meal.type) }}
+                    </span>
+                    <span
+                      v-if="meal.isCafeteria"
+                      class="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[12px] font-semibold text-blue-600"
+                    >
+                      사내 식단
                     </span>
                     <span class="text-[12px] text-[var(--gray-500)]">{{ meal.timeText }}</span>
                   </div>
@@ -922,11 +1003,14 @@ watch(
                     </div>
                   </div>
 
-                  <div class="flex gap-3 pt-4">
+                  <div
+                    class="flex pt-4"
+                    :class="selectedMeal.editable ? 'gap-3' : 'justify-center'"
+                  >
                     <button
+                      v-if="selectedMeal.editable"
                       type="button"
-                      class="flex h-[56px] flex-1 items-center justify-center rounded-[20px] bg-[#00C73C] text-[17px] font-bold text-white shadow-md shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!selectedMeal.editable"
+                      class="flex h-[56px] flex-1 items-center justify-center rounded-[20px] bg-[#00C73C] text-[17px] font-bold text-white shadow-md shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98]"
                       @click="goToEdit(selectedMeal.id)"
                     >
                       <Pencil class="mr-2 h-5 w-5" />
@@ -935,7 +1019,6 @@ watch(
                     <button
                       type="button"
                       class="flex h-[56px] w-[56px] items-center justify-center rounded-[20px] border border-[var(--gray-200)] bg-[var(--gray-50)] text-[var(--gray-400)] transition-colors hover:border-[#FF3B30] hover:bg-[#FFF5F5] hover:text-[#FF3B30] disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!selectedMeal.editable"
                       @click="confirmDelete(selectedMeal.id)"
                     >
                       <Trash2 class="h-6 w-6" />

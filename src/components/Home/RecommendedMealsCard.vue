@@ -96,7 +96,7 @@ function computeMacros(meal: RecommendedMeal) {
               v-if="meal.isCafeteria"
               class="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-600"
             >
-              사내식단
+              사내 식단
             </span>
             <span class="text-[12px] text-[var(--gray-500)]"> {{ meal.calories }} kcal </span>
           </div>
