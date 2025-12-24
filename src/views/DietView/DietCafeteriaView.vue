@@ -5,8 +5,10 @@ import { ArrowLeft, Share2 } from 'lucide-vue-next'
 import CafeteriaMenuCard from '@/components/Diet/CafeteriaMenuCard.vue'
 import {
   getRestaurantMenu,
+  registerRestaurantDiet,
   resolveDietImageUrl,
   type RestaurantMenuItem,
+  type DietMealType,
 } from '@/services/dietService'
 import { isSameDay } from '@/utils/diet/dietUtils'
 
@@ -34,6 +36,7 @@ const days = ['월', '화', '수', '목', '금']
 
 const menuBySlot = ref<Record<string, RestaurantMenuItem[]>>({})
 const isLoadingMenu = ref(false)
+const isRegistering = ref(false)
 
 const slotTime = {
   BREAKFAST: '07:20 ~ 09:00',
@@ -79,6 +82,8 @@ const formatDate = (date: Date) => {
 const fetchMenus = async (date: Date) => {
   const dateString = formatDate(date)
   isLoadingMenu.value = true
+  // Clear previous data immediately to prevent stale UI
+  menuBySlot.value = {}
   console.info('[DietCafeteria] menu request', { date: dateString })
   try {
     const response = await getRestaurantMenu(dateString)
@@ -111,6 +116,50 @@ function isSelectedDate(date: Date) {
 
 function isToday(date: Date) {
   return isSameDay(date, new Date())
+}
+
+const isFutureDate = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(selectedDate.value)
+  target.setHours(0, 0, 0, 0)
+  return target > today
+})
+
+const handleAddMenu = async (
+  menu: ReturnType<typeof mapSlotMenus>[number],
+  mealType: DietMealType,
+) => {
+  if (isRegistering.value) return
+  if (!confirm(`[${menu.main}] 식단을 기록하시겠습니까?`)) return
+
+  isRegistering.value = true
+  try {
+    const payload = {
+      restaurantName: menu.corner,
+      menuName: menu.main,
+      date: formatDate(selectedDate.value),
+      mealType,
+    }
+    console.info('[DietCafeteria] register request', payload)
+    await registerRestaurantDiet(payload)
+    alert('식단이 기록되었습니다.')
+    router.push({ path: '/diet', query: { date: formatDate(selectedDate.value) } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Register failed'
+    console.warn('[DietCafeteria] register error', message)
+    if (
+      message.includes('중복') ||
+      message.includes('already') ||
+      message.toLowerCase().includes('duplicate')
+    ) {
+      alert('이미 해당 식사 시간에 기록된 식단이 있습니다.')
+    } else {
+      alert('식단 기록에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    }
+  } finally {
+    isRegistering.value = false
+  }
 }
 </script>
 
@@ -185,6 +234,9 @@ function isToday(date: Date) {
             v-for="(menu, idx) in menuData.breakfast.menus"
             :key="`b-${idx}`"
             :menu="menu"
+            :show-add-button="!isFutureDate"
+            :disabled="isRegistering"
+            @add="handleAddMenu(menu, 'BREAKFAST')"
           />
         </div>
       </section>
@@ -202,6 +254,9 @@ function isToday(date: Date) {
             v-for="(menu, idx) in menuData.lunch.menus"
             :key="`l-${idx}`"
             :menu="menu"
+            :show-add-button="!isFutureDate"
+            :disabled="isRegistering"
+            @add="handleAddMenu(menu, 'LUNCH')"
           />
         </div>
       </section>
@@ -219,6 +274,9 @@ function isToday(date: Date) {
             v-for="(menu, idx) in menuData.dinner.menus"
             :key="`d-${idx}`"
             :menu="menu"
+            :show-add-button="!isFutureDate"
+            :disabled="isRegistering"
+            @add="handleAddMenu(menu, 'DINNER')"
           />
         </div>
       </section>
