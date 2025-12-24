@@ -19,7 +19,7 @@ const handleLogin = async (provider: OAuthProvider) => {
 
     // 개발 환경과 배포 환경의 Redirect URI 일치 필요
     const redirectUri = `${window.location.origin}/oauth/callback/kakao`
-    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&prompt=login`
 
     console.log('[Login] Redirecting to Kakao:', url)
     window.location.href = url
