@@ -5,12 +5,21 @@ import SignupFlow from '@/components/Signup/SignupFlow.vue'
 import type { SignupResult } from '@/types/signup'
 import { register } from '@/services/authService'
 import { buildRegisterPayload } from '@/utils/signupMapper'
+import { clearRegisterToken, getRegisterToken } from '@/services/registerTokenStore'
 
 const router = useRouter()
 const isSubmitting = ref(false)
 
 // OAuthCallback에서 전달받은 registerToken 확인
-const registerToken = history.state.registerToken as string | undefined
+const registerTokenFromState =
+  (
+    history.state as
+      | { registerToken?: string; state?: { registerToken?: string } }
+      | null
+      | undefined
+  )?.registerToken ??
+  (history.state as { state?: { registerToken?: string } } | null | undefined)?.state?.registerToken
+const registerToken = getRegisterToken() || registerTokenFromState
 
 if (!registerToken) {
   // 토큰 없이 직접 접근 시 로그인 페이지로 리다이렉트 (필요 시 활성화)
@@ -31,6 +40,7 @@ const handleComplete = async (payload: SignupResult) => {
 
   if (!registerToken) {
     alert('잘못된 접근입니다. 다시 로그인해주세요.')
+    clearRegisterToken()
     router.push('/login')
     return
   }
@@ -44,10 +54,12 @@ const handleComplete = async (payload: SignupResult) => {
     console.log('[Signup] register response', response)
 
     // 회원가입 후 로그인 성공 처리 -> 메인으로 이동
+    clearRegisterToken()
     router.push('/')
   } catch (error) {
     console.error('Signup failed:', error)
     alert('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    clearRegisterToken()
     router.push('/login')
   } finally {
     isSubmitting.value = false
@@ -55,6 +67,7 @@ const handleComplete = async (payload: SignupResult) => {
 }
 
 const handleExit = () => {
+  clearRegisterToken()
   router.push('/login')
 }
 </script>

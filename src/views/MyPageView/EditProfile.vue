@@ -277,7 +277,7 @@ const handleSave = async () => {
                 <input
                   id="group"
                   v-model="formData.group"
-                  placeholder="예: SSAFY 12기, OO 대학교"
+                  placeholder="예: 전기부산, 멀티캠퍼스"
                   class="h-11 w-full rounded-lg border border-[var(--gray-300)] px-3 pr-9 text-[14px] text-[var(--gray-900)] outline-none transition focus:border-[#00C73C]"
                   readonly
                 />

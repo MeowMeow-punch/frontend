@@ -9,6 +9,7 @@ import DietView from '@/views/DietView/DietView.vue'
 import DietRecordView from '@/views/DietView/DietRecordView.vue'
 import DietCafeteriaView from '@/views/DietView/DietCafeteriaView.vue'
 import { isAuthenticated } from '@/services/authService'
+import { getRegisterToken } from '@/services/registerTokenStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -69,11 +70,15 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !isAuthenticated()) {
+  const authenticated = isAuthenticated()
+  const registerToken = getRegisterToken()
+  const isRegisterFlow = to.name === 'regist' && Boolean(registerToken)
+
+  if (!authenticated && to.name !== 'login' && to.name !== 'oauth-callback' && !isRegisterFlow) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  if (to.meta.guestOnly && isAuthenticated()) {
+  if (to.meta.guestOnly && authenticated) {
     if (import.meta.env.DEV) {
       // TODO: remove dev override once auth flow is finalized.
       return true
