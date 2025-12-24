@@ -171,6 +171,7 @@ export type DietDetailInfo = {
   calorie: number
   nutrients: DietFoodNutrients
   foods: DietDetailFood[]
+  thumbnailUrls?: string[]
 }
 
 export type DietDetailResponse = {
