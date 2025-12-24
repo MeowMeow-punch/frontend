@@ -111,9 +111,11 @@ const selectedMeal = computed(() => {
     const localType = MEAL_TYPE_TO_LOCAL[detail.mealType] ?? 'lunch'
     const timeText = detail.time ? detail.time.slice(0, 5) : getMealTime(localType)
     const isCafeteria = !detail.isEditable
-    const detailThumbnails = (detail.foods ?? [])
-      .map((food) => resolveDietImageUrl(food.thumbnailUrl))
-      .filter(Boolean)
+    const detailThumbnails =
+      detail.thumbnailUrls && detail.thumbnailUrls.length > 0
+        ? detail.thumbnailUrls.map(resolveDietImageUrl).filter(Boolean)
+        : (detail.foods ?? []).map((food) => resolveDietImageUrl(food.thumbnailUrl)).filter(Boolean)
+
     if (detailThumbnails.length > 0) {
       setThumbnailOverride(detail.myDietId, detailThumbnails)
     }
@@ -323,9 +325,12 @@ const prefetchMealThumbnails = async (meals: TodayDietInfo[]) => {
         const response = await getDietDetail(meal.myDietId)
         const detail = response?.dietInfo
         if (!detail) return
-        const thumbnails = (detail.foods ?? [])
-          .map((food) => resolveDietImageUrl(food.thumbnailUrl))
-          .filter(Boolean)
+        const thumbnails =
+          detail.thumbnailUrls && detail.thumbnailUrls.length > 0
+            ? detail.thumbnailUrls.map(resolveDietImageUrl).filter(Boolean)
+            : (detail.foods ?? [])
+                .map((food) => resolveDietImageUrl(food.thumbnailUrl))
+                .filter(Boolean)
         setThumbnailOverride(meal.myDietId, thumbnails)
         if (detail.isEditable === false) {
           markCafeteriaMeal(meal.myDietId)

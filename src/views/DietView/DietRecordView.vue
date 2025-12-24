@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -117,6 +117,11 @@ const editingTime = ref<string | null>(null)
 const isMealLoading = ref(false)
 const isSaving = ref(false)
 const pendingAutoSelectName = ref<string | null>(null)
+const nextCursor = ref<string | null>(null)
+const hasNextPage = ref(true)
+const isFetchingMore = ref(false)
+const sentinel = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
 let foodRequestId = 0
 let searchTimeout: number | null = null
@@ -176,18 +181,44 @@ const loadMealDetail = async (dietId: number) => {
   }
 }
 
-const loadFoods = async (keyword: string) => {
+const loadFoods = async (keyword: string, isLoadMore = false) => {
+  if (isLoadMore && (!hasNextPage.value || isFetchingMore.value)) return
+
   const requestId = ++foodRequestId
   const trimmedKeyword = keyword.trim()
   const category = getCategoryQuery()
 
+  if (isLoadMore) {
+    isFetchingMore.value = true
+  } else {
+    // Reset for new search
+    foods.value = []
+    nextCursor.value = null
+    hasNextPage.value = true
+  }
+
   try {
-    const data = trimmedKeyword
-      ? await searchFoods({ keyword: trimmedKeyword, size: FOOD_PAGE_SIZE, category })
-      : await getFoodList({ size: FOOD_PAGE_SIZE, category })
+    const params = {
+      size: FOOD_PAGE_SIZE,
+      category,
+      cursor: nextCursor.value ?? undefined,
+      keyword: trimmedKeyword || undefined,
+    }
+
+    const data = trimmedKeyword ? await searchFoods(params as any) : await getFoodList(params)
 
     if (requestId !== foodRequestId) return
-    foods.value = (data.foods ?? []).map(mapFoodItem)
+
+    const newFoods = (data.foods ?? []).map(mapFoodItem)
+
+    if (isLoadMore) {
+      foods.value = [...foods.value, ...newFoods]
+    } else {
+      foods.value = newFoods
+    }
+
+    nextCursor.value = data.pageInfo.nextCursor
+    hasNextPage.value = data.pageInfo.hasNext
 
     if (pendingAutoSelectName.value) {
       if (!trimmedKeyword) {
@@ -215,10 +246,12 @@ const loadFoods = async (keyword: string) => {
     }
   } catch (error) {
     if (requestId !== foodRequestId) return
-    foods.value = []
+    if (!isLoadMore) foods.value = []
     const message = error instanceof Error ? error.message : 'Food fetch failed.'
     console.warn('[DietRecord] food fetch failed', { message, keyword: trimmedKeyword })
     pendingAutoSelectName.value = null
+  } finally {
+    isFetchingMore.value = false
   }
 }
 
@@ -276,6 +309,26 @@ initFromRoute()
 
 onMounted(() => {
   void loadFoods(searchQuery.value)
+
+  // IntersectionObserver setup
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries?.[0]?.isIntersecting && hasNextPage.value && !isFetchingMore.value) {
+        void loadFoods(searchQuery.value, true)
+      }
+    },
+    { rootMargin: '100px' },
+  )
+
+  if (sentinel.value) {
+    observer.observe(sentinel.value)
+  }
+})
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+  }
 })
 
 const filteredFoods = computed(() => foods.value)
@@ -527,6 +580,14 @@ function goBack() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Infinite scroll sentinel -->
+            <div ref="sentinel" class="mt-2 flex h-4 w-full items-center justify-center">
+              <div
+                v-if="isFetchingMore"
+                class="h-5 w-5 animate-spin rounded-full border-2 border-[var(--gray-200)] border-t-[#00C73C]"
+              />
             </div>
           </div>
         </div>
