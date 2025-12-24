@@ -28,7 +28,31 @@ const handleLogin = async (provider: OAuthProvider) => {
     return
   }
 
-  // TODO: 구글 로그인 구현 예정
+  if (provider === 'GOOGLE') {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      alert('구글 클라이언트 ID가 설정되지 않았습니다.')
+      console.error('VITE_GOOGLE_CLIENT_ID is missing in .env')
+      return
+    }
+
+    const redirectUri = `${window.location.origin}/oauth/callback/google`
+
+    // CSRF 방지를 위한 State 생성
+    const state = Array.from(window.crypto.getRandomValues(new Uint32Array(1)))
+      .map((n) => n.toString(36))
+      .join('')
+
+    sessionStorage.setItem('google_oauth_state', state)
+
+    // 구글 로그인 URL 구성
+    const scope = 'email profile openid'
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`
+
+    console.log('[Login] Redirecting to Google:', url)
+    window.location.href = url
+    return
+  }
 
   if (provider === 'NAVER') {
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
