@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Utensils, ArrowLeft } from 'lucide-vue-next'
 import type { OAuthProvider } from '@/services/authService'
+import { useModalStore } from '@/stores/modalStore'
 
 const router = useRouter()
+const modalStore = useModalStore()
 const isSubmitting = ref(false)
 
 const handleLogin = async (provider: OAuthProvider) => {
@@ -15,8 +17,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'KAKAO') {
     const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID
     if (!clientId) {
-      alert('카카오 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_KAKAO_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '카카오 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -32,8 +37,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'GOOGLE') {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) {
-      alert('구글 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_GOOGLE_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '구글 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -58,8 +66,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'NAVER') {
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
     if (!clientId) {
-      alert('네이버 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_NAVER_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '네이버 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -79,7 +90,7 @@ const handleLogin = async (provider: OAuthProvider) => {
     return
   }
 
-  alert('준비 중인 기능입니다.')
+  modalStore.openAppModal({ title: '알림', content: '준비 중인 기능입니다.', type: 'info' })
 }
 </script>
 
