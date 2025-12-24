@@ -17,6 +17,23 @@ onMounted(async () => {
     return
   }
 
+  // Naver State 검증 (CSRF 방지)
+  if (provider === 'naver') {
+    const urlState = route.query.state as string
+    const savedState = sessionStorage.getItem('naver_oauth_state')
+
+    if (!urlState || urlState !== savedState) {
+      console.error('[OAuthCallback] State mismatch', { urlState, savedState })
+      alert('잘못된 접근입니다. (보안 경고)')
+      sessionStorage.removeItem('naver_oauth_state')
+      router.replace('/login')
+      return
+    }
+
+    // 검증 성공 시 사용한 State 파기
+    sessionStorage.removeItem('naver_oauth_state')
+  }
+
   try {
     const capsProvider = provider.toUpperCase() as OAuthProvider
     // 주의: redirectUri는 카카오 로그인 요청 시 보낸 값과 정확히 일치해야 합니다.
