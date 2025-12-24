@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ArrowLeft, Heart, TrendingDown, TrendingUp } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
 import SignupLayout from '@/components/Layouts/SignupLayout.vue'
 import StepDisease from '@/components/Signup/StepDisease.vue'
 import StepHabits from '@/components/Signup/StepHabits.vue'
@@ -60,6 +60,11 @@ const currentStepNumber = computed(() => {
     targetWeight: 3,
   }
   return stepMap[step.value] || 0
+})
+
+const progress = computed(() => {
+  if (!totalSteps.value) return 0
+  return Math.min(100, Math.max(0, (currentStepNumber.value / totalSteps.value) * 100))
 })
 
 const focusType = computed<FocusType>(() => (selectedType.value === '다이어트' ? 'diet' : 'bulkup'))
@@ -243,9 +248,7 @@ const handleStepBack = () => {
               : 'border-[var(--gray-200)]',
           ]"
         >
-          <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E6F9ED]">
-            <Heart class="h-7 w-7 text-[#00C73C]" />
-          </div>
+          <div class="mb-4 text-[40px]">🥗</div>
           <h3 class="mb-2 text-[17px] text-[var(--gray-900)]" style="font-weight: 700">영양관리</h3>
           <p class="text-[14px] text-[var(--gray-600)]" style="font-weight: 400">
             건강한 식습관과 균형잡힌 영양소 섭취
@@ -262,9 +265,7 @@ const handleStepBack = () => {
               : 'border-[var(--gray-200)]',
           ]"
         >
-          <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E6F9ED]">
-            <TrendingDown class="h-7 w-7 text-[#00C73C]" />
-          </div>
+          <div class="mb-4 text-[40px]">🏃</div>
           <h3 class="mb-2 text-[17px] text-[var(--gray-900)]" style="font-weight: 700">다이어트</h3>
           <p class="text-[14px] text-[var(--gray-600)]" style="font-weight: 400">
             건강한 방법으로 체중 감량
@@ -281,9 +282,7 @@ const handleStepBack = () => {
               : 'border-[var(--gray-200)]',
           ]"
         >
-          <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#E6F9ED]">
-            <TrendingUp class="h-7 w-7 text-[#00C73C]" />
-          </div>
+          <div class="mb-4 text-[40px]">💪</div>
           <h3 class="mb-2 text-[17px] text-[var(--gray-900)]" style="font-weight: 700">체중증량</h3>
           <p class="text-[14px] text-[var(--gray-600)]" style="font-weight: 400">
             근육 성장과 체중 증가
@@ -293,43 +292,70 @@ const handleStepBack = () => {
     </div>
   </div>
 
-  <SignupLayout
-    v-else
-    :current-step="currentStepNumber"
-    :total-steps="totalSteps"
-    :step-title="''"
-    :step-description="''"
-    @back="handleStepBack"
-    @logo="emit('back')"
-  >
-    <Transition name="fade-slide" mode="out-in">
-      <StepDisease v-if="step === 'disease'" key="disease" @next="handleDiseaseNext" />
+  <div v-else class="min-h-screen bg-white">
+    <div class="mx-auto max-w-[960px] px-4 py-8 md:px-8 md:py-12">
+      <!-- Back Button -->
+      <button
+        type="button"
+        class="mb-4 flex items-center gap-2 text-[var(--gray-600)] transition-colors hover:text-[var(--gray-900)]"
+        @click="handleStepBack"
+      >
+        <ArrowLeft class="h-5 w-5" />
+        <span class="text-[14px]" style="font-weight: 500">뒤로가기</span>
+      </button>
 
-      <StepHabits v-else-if="step === 'habits'" key="habits" @next="handleHabitsNext" />
+      <!-- Progress Bar -->
+      <div class="mb-8 w-full">
+        <div class="h-[2px] w-full bg-[var(--gray-100)]">
+          <div
+            class="h-full transition-all duration-300"
+            :style="{ width: `${progress}%`, backgroundColor: '#00C73C' }"
+          />
+        </div>
+      </div>
 
-      <StepMealCount v-else-if="step === 'mealCount'" key="mealCount" @next="handleMealCountNext" />
+      <SignupLayout
+        :current-step="currentStepNumber"
+        :total-steps="totalSteps"
+        :step-title="''"
+        :step-description="''"
+        :show-progress="false"
+        @back="handleStepBack"
+      >
+        <Transition name="fade-slide" mode="out-in">
+          <StepDisease v-if="step === 'disease'" key="disease" @next="handleDiseaseNext" />
 
-      <StepActivityLevel
-        v-else-if="step === 'activity'"
-        key="activity"
-        @next="handleActivityNext"
-      />
+          <StepHabits v-else-if="step === 'habits'" key="habits" @next="handleHabitsNext" />
 
-      <StepActivityLevel
-        v-else-if="step === 'activityGoal'"
-        key="activityGoal"
-        @next="handleActivityGoalNext"
-      />
+          <StepMealCount
+            v-else-if="step === 'mealCount'"
+            key="mealCount"
+            @next="handleMealCountNext"
+          />
 
-      <StepTargetWeight
-        v-else-if="step === 'targetWeight'"
-        key="targetWeight"
-        :current-weight="'73'"
-        :focus-type="focusType"
-        @next="handleTargetWeightNext"
-      />
-    </Transition>
-  </SignupLayout>
+          <StepActivityLevel
+            v-else-if="step === 'activity'"
+            key="activity"
+            @next="handleActivityNext"
+          />
+
+          <StepActivityLevel
+            v-else-if="step === 'activityGoal'"
+            key="activityGoal"
+            @next="handleActivityGoalNext"
+          />
+
+          <StepTargetWeight
+            v-else-if="step === 'targetWeight'"
+            key="targetWeight"
+            :current-weight="'73'"
+            :focus-type="focusType"
+            @next="handleTargetWeightNext"
+          />
+        </Transition>
+      </SignupLayout>
+    </div>
+  </div>
 </template>
 
 <style scoped>
