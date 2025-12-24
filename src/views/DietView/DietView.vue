@@ -124,7 +124,7 @@ const selectedMeal = computed(() => {
       type: fallbackMeal.type,
       timeText: fallbackMeal.timeText,
       title: fallbackMeal.title,
-      editable: true,
+      editable: false,
       nutrition: {
         calories: fallbackMeal.calorie,
         carbs: fallbackMeal.nutrients.carbs,
@@ -924,9 +924,9 @@ watch(
 
                   <div class="flex gap-3 pt-4">
                     <button
+                      v-if="selectedMeal.editable"
                       type="button"
                       class="flex h-[56px] flex-1 items-center justify-center rounded-[20px] bg-[#00C73C] text-[17px] font-bold text-white shadow-md shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!selectedMeal.editable"
                       @click="goToEdit(selectedMeal.id)"
                     >
                       <Pencil class="mr-2 h-5 w-5" />

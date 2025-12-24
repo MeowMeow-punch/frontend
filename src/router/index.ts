@@ -78,7 +78,7 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  if (to.meta.guestOnly && authenticated) {
+  if (to.meta.guestOnly && authenticated && !isRegisterFlow) {
     if (import.meta.env.DEV) {
       // TODO: remove dev override once auth flow is finalized.
       return true
