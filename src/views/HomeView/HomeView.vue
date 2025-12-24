@@ -14,6 +14,7 @@ import { useDietStore } from '@/composables/useDietStore'
 import {
   getDietDaily,
   getDietMain,
+  registerRecommendedDiet,
   resolveDietImageUrl,
   type DietMainData,
   type DietMealType,
@@ -24,13 +25,17 @@ import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
 const goTo = (path: string) => router.push(path)
-const { setDraftMeal, setDraftSearch } = useDietStore()
+const { setDraftMeal, setDraftSearch, markCafeteriaMeal } = useDietStore()
 
 function isMealTime(value: string): value is MealTime {
   return value === 'breakfast' || value === 'lunch' || value === 'dinner' || value === 'snack'
 }
 
 function handleRecommendedMealSelect(meal: RecommendedMeal) {
+  if (meal.isCafeteria) {
+    void registerCafeteriaMeal(meal)
+    return
+  }
   if (isMealTime(meal.time)) {
     setDraftMeal({ time: meal.time, foods: meal.foods })
     goTo('/diet/record')
@@ -39,8 +44,45 @@ function handleRecommendedMealSelect(meal: RecommendedMeal) {
   goTo('/diet')
 }
 
-function handleRecommendedMealQuickAdd(meal: RecommendedMeal) {
+const isQuickAddPending = ref(false)
+
+async function registerCafeteriaMeal(meal: RecommendedMeal) {
+  if (isQuickAddPending.value) return
   const time = isMealTime(meal.time) ? meal.time : undefined
+  console.info('[Home] cafeteria quick add', { mealId: meal.id, name: meal.name, time })
+  try {
+    isQuickAddPending.value = true
+    const response = await registerRecommendedDiet(meal.id)
+    const myDietId = response.data?.myDietId
+    if (Number.isFinite(myDietId)) {
+      markCafeteriaMeal(Number(myDietId))
+    }
+    goTo('/diet')
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Cafeteria recommendation register failed.'
+    console.warn('[Home] cafeteria quick add failed', { mealId: meal.id, message })
+    const duplicateHint =
+      message.includes('중복') ||
+      message.includes('이미') ||
+      message.toLowerCase().includes('duplicate')
+    alert(
+      duplicateHint
+        ? '같은 시간대 식단은 하루에 1개만 등록할 수 있습니다.'
+        : '사내 식단 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    )
+  } finally {
+    isQuickAddPending.value = false
+  }
+}
+
+async function handleRecommendedMealQuickAdd(meal: RecommendedMeal) {
+  const time = isMealTime(meal.time) ? meal.time : undefined
+  if (meal.isCafeteria) {
+    await registerCafeteriaMeal(meal)
+    return
+  }
+  if (isQuickAddPending.value) return
   console.info('[Home] recommended quick add', { mealId: meal.id, name: meal.name, time })
   setDraftSearch({ keyword: meal.name, time })
   goTo('/diet/record')
@@ -169,6 +211,11 @@ const mapRecommendedMeals = (items: DietMainRecommendation[]) =>
   items.map((item) => {
     const imageUrl = resolveDietImageUrl(item.thumbnailUrls?.[0])
     const nutrients = item.nutrients ?? { carbs: 0, protein: 0, fat: 0 }
+    const sourceType = item.sourceType?.toString().trim().toUpperCase() ?? ''
+    const isCafeteria =
+      sourceType === 'WELSTORY' ||
+      sourceType.includes('WELSTORY') ||
+      (item.thumbnailUrls ?? []).some((url) => url.toLowerCase().includes('welstory'))
     return {
       id: item.recommendationId,
       name: item.name,
@@ -178,6 +225,7 @@ const mapRecommendedMeals = (items: DietMainRecommendation[]) =>
       protein: nutrients.protein,
       carbs: nutrients.carbs,
       fat: nutrients.fat,
+      isCafeteria,
       foods: [
         {
           id: item.recommendationId,

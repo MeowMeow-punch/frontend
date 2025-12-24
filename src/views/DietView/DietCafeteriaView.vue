@@ -82,6 +82,7 @@ const fetchMenus = async (date: Date) => {
   console.info('[DietCafeteria] menu request', { date: dateString })
   try {
     const response = await getRestaurantMenu(dateString)
+    console.info('[DietCafeteria] menu raw response', response)
     menuBySlot.value = response ?? {}
     console.info('[DietCafeteria] menu response', {
       date: dateString,
