@@ -14,7 +14,7 @@ import { useDietStore } from '@/composables/useDietStore'
 import {
   getDietDaily,
   getDietMain,
-  registerRecommendedDiet,
+  registerRestaurantDiet,
   resolveDietImageUrl,
   type DietMainData,
   type DietMealType,
@@ -50,9 +50,18 @@ async function registerCafeteriaMeal(meal: RecommendedMeal) {
   if (isQuickAddPending.value) return
   const time = isMealTime(meal.time) ? meal.time : undefined
   console.info('[Home] cafeteria quick add', { mealId: meal.id, name: meal.name, time })
+
+  // Default to '사내식당' as backend doesn't provide restaurant name yet
+  const restaurantName = '사내식당'
+
   try {
     isQuickAddPending.value = true
-    const response = await registerRecommendedDiet(meal.id)
+    const response = await registerRestaurantDiet({
+      restaurantName,
+      menuName: meal.name,
+      date: formatDate(new Date()),
+      mealType: meal.time.toUpperCase() as DietMealType, // Convert 'lunch' -> 'LUNCH'
+    })
     const myDietId = response.data?.myDietId
     if (Number.isFinite(myDietId)) {
       markCafeteriaMeal(Number(myDietId))

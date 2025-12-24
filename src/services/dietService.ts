@@ -117,6 +117,13 @@ export type RestaurantMenuItem = {
   thumbnailUrls: string[]
 }
 
+export type RestaurantRegisterPayload = {
+  restaurantName: string
+  menuName: string
+  date: string
+  mealType: DietMealType
+}
+
 export type NutritionDetail = {
   current: number
   goal: number
@@ -314,6 +321,21 @@ export const getDietDetail = async (dietId: number) => {
   })
 
   return response.data
+}
+
+export const registerRestaurantDiet = async (payload: RestaurantRegisterPayload) => {
+  const response = await apiFetch<{
+    code: number
+    message: string
+    data?: { myDietId: number }
+  }>(`/diet/restaurant/register`, {
+    method: 'POST',
+    withAuth: true,
+    body: payload,
+    errorMessage: 'Restaurant diet register failed.',
+  })
+
+  return response
 }
 
 export const registerRecommendedDiet = async (recommendationId: number) => {

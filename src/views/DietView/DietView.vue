@@ -143,6 +143,7 @@ const selectedMeal = computed(() => {
         image: resolveDietImageUrl(food.thumbnailUrl),
         quantity: food.quantity,
       })),
+      thumbnails: detailThumbnails,
     }
   }
 
@@ -164,6 +165,7 @@ const selectedMeal = computed(() => {
         fat: fallbackMeal.nutrients.fat,
       },
       foods: [],
+      thumbnails: fallbackMeal.thumbnails,
     }
   }
 
@@ -893,19 +895,19 @@ watch(
                   >
                     <div class="grid h-full grid-cols-2 gap-0.5">
                       <div
-                        v-for="(food, i) in selectedMeal.foods.slice(0, 4)"
-                        :key="`${selectedMeal.id}-${food.id}-${i}`"
+                        v-for="(thumb, i) in selectedMeal.thumbnails.slice(0, 4)"
+                        :key="`${selectedMeal.id}-thumb-${i}`"
                         class="relative h-full"
-                        :class="selectedMeal.foods.length === 1 ? 'col-span-2 row-span-2' : ''"
+                        :class="selectedMeal.thumbnails.length === 1 ? 'col-span-2 row-span-2' : ''"
                       >
                         <ImageWithFallback
-                          :src="food.image"
-                          :alt="food.name"
+                          :src="thumb"
+                          :alt="selectedMeal.title"
                           class="h-full w-full object-cover"
                         />
                       </div>
                       <div
-                        v-for="i in Math.max(0, 4 - selectedMeal.foods.length)"
+                        v-for="i in Math.max(0, 4 - selectedMeal.thumbnails.length)"
                         :key="`empty-${selectedMeal.id}-${i}`"
                         class="bg-[var(--gray-50)]"
                       />
@@ -933,7 +935,10 @@ watch(
                     >
                       {{ selectedMeal.title }}
                     </h2>
-                    <p class="mb-6 text-[15px] text-[var(--gray-500)]">
+                    <p
+                      v-if="selectedMeal.foods.length > 0"
+                      class="mb-6 text-[15px] text-[var(--gray-500)]"
+                    >
                       총 {{ selectedMeal.foods.length }}개 음식
                     </p>
 
@@ -977,7 +982,7 @@ watch(
                       </div>
                     </div>
 
-                    <div class="mt-6 space-y-3">
+                    <div v-if="selectedMeal.foods.length > 0" class="mt-6 space-y-3">
                       <h3 class="mb-3 text-[16px] font-bold text-[var(--gray-900)]">포함된 음식</h3>
                       <div
                         v-for="(food, i) in selectedMeal.foods"
