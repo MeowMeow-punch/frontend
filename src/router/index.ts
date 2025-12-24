@@ -9,8 +9,6 @@ import DietView from '@/views/DietView/DietView.vue'
 import DietRecordView from '@/views/DietView/DietRecordView.vue'
 import DietCafeteriaView from '@/views/DietView/DietCafeteriaView.vue'
 import MenuRecommendationView from '@/views/MenuRecommendationView.vue'
-import { isAuthenticated } from '@/services/authService'
-import { getRegisterToken } from '@/services/registerTokenStore'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = createRouter({
@@ -83,6 +81,18 @@ const router = createRouter({
       path: '/error/500',
       name: 'server-error',
       component: () => import('@/views/Error/ServerErrorView.vue'),
+      meta: { hideNav: true },
+    },
+    {
+      path: '/error/403',
+      name: 'forbidden',
+      component: () => import('@/views/Error/ForbiddenView.vue'),
+      meta: { hideNav: true },
+    },
+    {
+      path: '/error/network',
+      name: 'network-error',
+      component: () => import('@/views/Error/NetworkErrorView.vue'),
       meta: { hideNav: true },
     },
     {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { TriangleAlert, ArrowLeft, Home } from 'lucide-vue-next'
+import { ShieldAlert, ArrowLeft, Home } from 'lucide-vue-next'
 import ErrorLayout from '@/components/Layout/ErrorLayout.vue'
 
 const router = useRouter()
@@ -8,9 +8,9 @@ const router = useRouter()
 
 <template>
   <ErrorLayout
-    title="페이지를 찾을 수 없어요"
-    description="주소가 올바르지 않거나 알 수 없는 오류로&#10;페이지가 변경 혹은 삭제되었을 수 있어요."
-    :icon="TriangleAlert"
+    title="접근할 수 없는 페이지예요"
+    description="이 페이지를 볼 수 있는 권한이 없거나&#10;비공개된 페이지입니다."
+    :icon="ShieldAlert"
   >
     <template #actions>
       <button
@@ -31,12 +31,3 @@ const router = useRouter()
     </template>
   </ErrorLayout>
 </template>
-
-<style scoped>
-/* Mobile optimized spacing if needed */
-@media (max-height: 700px) {
-  .min-h-screen {
-    padding-bottom: 80px;
-  }
-}
-</style>
