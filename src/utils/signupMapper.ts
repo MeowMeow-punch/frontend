@@ -1,5 +1,4 @@
 import type { RegisterRequest } from '@/services/authService'
-import { getOrCreateOAuthId } from '@/services/oauthStore'
 import type { SignupResult } from '@/types/signup'
 
 const mapGender = (gender: string): RegisterRequest['gender'] =>
@@ -25,7 +24,7 @@ const mapActivityLevel = (level: string): RegisterRequest['activityLevel'] => {
   return 'VERYHIGH'
 }
 
-const mapHabit = (value: string): RegisterRequest['isSmoking'] => {
+const mapHabit = (value: string): RegisterRequest['smokingStatus'] => {
   if (value === 'none') return 'NONE'
   if (value === 'light') return 'SOMETIME'
   if (value === 'moderate') return 'SOMETIME'
@@ -34,15 +33,19 @@ const mapHabit = (value: string): RegisterRequest['isSmoking'] => {
   return 'OFTEN'
 }
 
-export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => {
+export const buildRegisterPayload = (
+  payload: SignupResult,
+  registerToken: string,
+): RegisterRequest => {
   const focus = mapFocus(payload.focusType)
   const groupId =
-    payload.affiliation.type === 'group' ? (payload.affiliation.selected?.id ?? null) : null
-  const cleanedDiseases = payload.diseases.includes('없음') ? [] : payload.diseases
+    payload.affiliation.type === 'group'
+      ? (payload.affiliation.selected?.id ?? undefined)
+      : undefined
+  const cleanedDiseases = payload.diseases.indexOf('없음') !== -1 ? [] : payload.diseases
 
   const result: RegisterRequest = {
-    oauthProvider: 'KAKAO',
-    oauthId: getOrCreateOAuthId('KAKAO'),
+    registerToken,
     nickname: payload.nickname,
     isMarketing: payload.terms.marketing,
     gender: mapGender(payload.userInfo.gender),
@@ -52,8 +55,10 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
     allergies: payload.allergies,
     diseases: cleanedDiseases,
     status: payload.affiliation.type === 'group' ? 'GROUP' : 'SINGLE',
-    groupId,
+    groupId: groupId ? String(groupId) : undefined,
     focus,
+    meals: 'THREE', // 기본값 설정 (값이 있으면 아래에서 덮어씌움)
+    activityLevel: 'MEDIUM', // 기본값 설정
   }
 
   if (payload.mealCount) {
@@ -65,8 +70,8 @@ export const buildRegisterPayload = (payload: SignupResult): RegisterRequest => 
   }
 
   if (focus === 'HEALTHY') {
-    result.isSmoking = mapHabit(payload.habits.smoking)
-    result.isDrinking = mapHabit(payload.habits.drinking)
+    result.smokingStatus = mapHabit(payload.habits.smoking)
+    result.drinkingStatus = mapHabit(payload.habits.drinking)
   }
 
   if (focus !== 'HEALTHY' && payload.targetWeight) {
