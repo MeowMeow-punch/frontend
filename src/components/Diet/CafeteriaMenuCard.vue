@@ -7,7 +7,9 @@ type CafeteriaMenuItem = {
   main: string
   sub: string
   kcal: number
+  carbs?: number
   protein?: number
+  fat?: number
   soldout?: boolean
   image?: string | null
 }
@@ -49,9 +51,18 @@ defineProps<{
         <span class="text-[13px] font-bold text-[var(--gray-800)]">
           {{ menu.kcal }} <span class="text-[11px] font-normal text-[var(--gray-500)]">kcal</span>
         </span>
-        <span v-if="menu.protein !== undefined" class="h-3 w-px bg-[var(--gray-200)]" />
+        <span
+          v-if="menu.carbs !== undefined || menu.protein !== undefined || menu.fat !== undefined"
+          class="h-3 w-px bg-[var(--gray-200)]"
+        />
+        <span v-if="menu.carbs !== undefined" class="text-[12px] text-[var(--gray-500)]">
+          탄 {{ menu.carbs }}g
+        </span>
         <span v-if="menu.protein !== undefined" class="text-[12px] text-[var(--gray-500)]">
-          단백질 {{ menu.protein }}g
+          단 {{ menu.protein }}g
+        </span>
+        <span v-if="menu.fat !== undefined" class="text-[12px] text-[var(--gray-500)]">
+          지 {{ menu.fat }}g
         </span>
       </div>
     </div>

@@ -47,7 +47,9 @@ const mapSlotMenus = (slot: keyof typeof slotTime) =>
     main: menu.name,
     sub: menu.subName,
     kcal: menu.calorie,
+    carbs: menu.nutrients?.carbs,
     protein: menu.nutrients?.protein,
+    fat: menu.nutrients?.fat,
     soldout: false,
     image: resolveDietImageUrl(menu.thumbnailUrls?.[0]),
   }))
