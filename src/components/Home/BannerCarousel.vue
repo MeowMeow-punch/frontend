@@ -39,7 +39,7 @@ const fallbackBanner: Banner = {
   title: '',
   subtitle: '',
   buttonText: '',
-  route: '/',
+  route: '/home',
   theme: 'green',
   available: false,
 }

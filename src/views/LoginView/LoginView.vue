@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Utensils } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Utensils, ArrowLeft } from 'lucide-vue-next'
 import type { OAuthProvider } from '@/services/authService'
 
+const router = useRouter()
 const isSubmitting = ref(false)
 
 const handleLogin = async (provider: OAuthProvider) => {
@@ -82,7 +84,16 @@ const handleLogin = async (provider: OAuthProvider) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-white px-4">
+  <div class="relative flex min-h-screen items-center justify-center bg-white px-4">
+    <button
+      type="button"
+      @click="router.push('/')"
+      class="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-[var(--gray-600)] transition-colors hover:bg-[var(--gray-100)] hover:text-[var(--gray-900)]"
+      aria-label="뒤로가기"
+    >
+      <ArrowLeft class="h-6 w-6" />
+    </button>
+
     <div class="w-full max-w-md">
       <div class="mb-12 text-center">
         <div class="mb-6 flex justify-center">

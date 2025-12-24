@@ -22,29 +22,29 @@ import { getUserProfile, logout, updateProfile, withdraw } from '@/services/auth
 type SubPage = 'main' | 'edit-goal' | 'edit-profile' | 'privacy'
 
 const router = useRouter()
-const nickname = ref('건강한하루')
+const nickname = ref('')
 const tempNickname = ref(nickname.value)
 const isEditingNickname = ref(false)
 const currentSubPage = ref<SubPage>('main')
 const isDev = import.meta.env.DEV
 
 const userInfo = reactive({
-  email: 'user@pickit.com',
-  joinDate: '2024.11.01',
-  gender: '남성',
-  height: 175,
-  age: 28,
-  allergies: ['새우', '땅콩'],
-  group: 'SSAFY 12기',
-  userType: '영양관리',
-  startWeight: 75,
-  currentWeight: 72.7,
-  targetWeight: 68,
-  lastWeightRecord: '2024.12.02',
-  totalRecordDays: 23,
-  consecutiveDays: 7,
-  thisWeekMealCount: 5,
-  thisWeekTargetMealCount: 7,
+  email: '',
+  joinDate: '',
+  gender: '',
+  height: 0,
+  age: 0,
+  allergies: [] as string[],
+  group: '',
+  userType: '',
+  startWeight: 0,
+  currentWeight: 0,
+  targetWeight: 0,
+  lastWeightRecord: '',
+  totalRecordDays: 0,
+  consecutiveDays: 0,
+  thisWeekMealCount: 0,
+  thisWeekTargetMealCount: 0,
   marketingConsent: false,
 })
 
@@ -140,7 +140,8 @@ const handleLogout = async () => {
   } catch (error) {
     console.error('Logout failed:', error)
   } finally {
-    router.push('/login')
+    alert('로그아웃되었습니다.')
+    router.push({ name: 'landing' })
   }
 }
 
@@ -152,14 +153,14 @@ const handleDeleteAccount = async () => {
   try {
     await withdraw()
     alert('회원 탈퇴가 완료되었습니다.')
-    router.replace('/login')
+    router.replace({ name: 'landing' })
   } catch (error) {
     console.error('Withdraw failed:', error)
     alert('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
     // 실패해도 토큰이 만료되었거나 하면 로그인 페이지로 가야 할 수도 있음.
     // authService.withdraw의 finally 블록에서 토큰을 지우므로,
-    // 실패하더라도 이미 로컬 토큰은 지워진 상태일 것임 -> 로그인으로 이동이 자연스러움.
-    router.replace('/login')
+    // 실패하더라도 이미 로컬 토큰은 지워진 상태일 것임 -> 메인으로 이동이 자연스러움.
+    router.replace({ name: 'landing' })
   }
 }
 

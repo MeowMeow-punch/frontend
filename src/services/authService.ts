@@ -135,7 +135,7 @@ const SHOULD_USE_MOCK =
     ? true
     : AUTH_MOCK_OVERRIDE === 'false'
       ? false
-      : import.meta.env.VITE_API_MOCK !== 'false'
+      : import.meta.env.VITE_API_MOCK === 'true'
 
 export { clearTokens, getAccessToken, getRefreshToken, isAuthenticated }
 
