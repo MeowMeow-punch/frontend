@@ -446,7 +446,8 @@ onMounted(loadUserProfile)
                 </span>
               </p>
               <p class="mt-1 text-[12px] text-[var(--gray-500)]" style="font-weight: 400">
-                목표 {{ userInfo.targetWeight }}kg
+                <span v-if="userInfo.targetWeight > 0"> 목표 {{ userInfo.targetWeight }}kg </span>
+                <span v-else class="text-[var(--gray-400)]">목표 설정 필요</span>
               </p>
             </div>
           </template>

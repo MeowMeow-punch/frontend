@@ -24,15 +24,9 @@ const registerTokenFromState =
 const registerToken = getRegisterToken() || registerTokenFromState
 
 if (!registerToken) {
-  // 토큰 없이 직접 접근 시 로그인 페이지로 리다이렉트 (필요 시 활성화)
-  // setup() 내부라 주의 필요. onMounted에서 체크하거나 렌더링 후 처리 추천.
-  // 현재는 프로덕션 환경에서만 경고하거나 리다이렉트 하도록 주석 처리됨.
-  if (import.meta.env.PROD) {
-    // Strict check in production
-    // console.warn('Missing registerToken')
-    // router.replace('/login')
-    // But for now, let's just log warning, maybe user is testing UI?
-  }
+  // 토큰 없이 직접 접근 시 로그인 페이지로 리다이렉트
+  console.warn('Missing registerToken')
+  router.replace('/login')
 }
 
 const handleComplete = async (payload: SignupResult) => {
