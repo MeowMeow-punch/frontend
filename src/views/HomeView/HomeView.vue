@@ -291,9 +291,9 @@ const fetchWeeklyOverview = async () => {
     if (profileResult.status === 'fulfilled') {
       const activitySummary = profileResult.value.data?.activitySummary
       const userProfile = profileResult.value.data?.userProfile
-      const streakCount = activitySummary?.streak?.count ?? 0
-      const weeklyDietCount = activitySummary?.weeklyDiet?.count ?? 0
-      const weeklyDietGoal = activitySummary?.weeklyDiet?.goal ?? 0
+      const streakCount = activitySummary?.streak?.currentDays ?? 0
+      const weeklyDietCount = activitySummary?.weeklyDiet?.recordedCount ?? 0
+      const weeklyDietGoal = activitySummary?.weeklyDiet?.targetCount ?? 0
       const achievementPercent =
         weeklyDietGoal > 0 ? Math.round((weeklyDietCount / weeklyDietGoal) * 100) : 0
 

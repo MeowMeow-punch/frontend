@@ -227,12 +227,27 @@ const loadUserProfile = async () => {
 
     const streakInfo = activitySummary?.streak
     const weeklyDietInfo = activitySummary?.weeklyDiet
-    userInfo.consecutiveDays = typeof streakInfo?.count === 'number' ? streakInfo.count : 0
-    userInfo.totalRecordDays = typeof streakInfo?.total === 'number' ? streakInfo.total : 0
+
+    // [Updated] API v2 spec mapping
+    userInfo.consecutiveDays =
+      typeof streakInfo?.currentDays === 'number' ? streakInfo.currentDays : 0
+    userInfo.totalRecordDays =
+      typeof streakInfo?.totalRecordedDays === 'number' ? streakInfo.totalRecordedDays : 0
+
     userInfo.thisWeekMealCount =
-      typeof weeklyDietInfo?.count === 'number' ? weeklyDietInfo.count : 0
+      typeof weeklyDietInfo?.recordedCount === 'number' ? weeklyDietInfo.recordedCount : 0
     userInfo.thisWeekTargetMealCount =
-      typeof weeklyDietInfo?.goal === 'number' ? weeklyDietInfo.goal : 0
+      typeof weeklyDietInfo?.targetCount === 'number' ? weeklyDietInfo.targetCount : 0
+
+    // [New] Goal Weight logic from activitySummary
+    // If focus is HEALTHY, goalWeight might be null.
+    // Spec: "focus가 DIET 또는 MUSCLE인 경우: 사용자가 설정한 목표 체중(kg) 반환"
+    if (typeof activitySummary?.goalWeight === 'number') {
+      userInfo.targetWeight = activitySummary.goalWeight
+    } else {
+      // Fallback or explicit set to 0 if null/undefined (depending on UI requirement)
+      userInfo.targetWeight = 0
+    }
     if (isDev) {
       console.info('[MyPage] user profile mapped', {
         nickname: nickname.value,

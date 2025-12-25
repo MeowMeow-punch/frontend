@@ -98,13 +98,14 @@ export type UserProfileResponse = {
     }
     activitySummary?: {
       streak?: {
-        count?: number
-        total?: number
+        currentDays?: number
+        totalRecordedDays?: number
       }
       weeklyDiet?: {
-        count?: number
-        goal?: number
+        recordedCount?: number
+        targetCount?: number
       }
+      goalWeight?: number | null
     }
   }
 }
