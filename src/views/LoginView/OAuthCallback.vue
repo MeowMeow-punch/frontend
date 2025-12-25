@@ -3,16 +3,22 @@ import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login, type OAuthProvider } from '@/services/authService'
 import { setRegisterToken } from '@/services/registerTokenStore'
+import { useModalStore } from '@/stores/modalStore'
 
 const route = useRoute()
 const router = useRouter()
+const modalStore = useModalStore()
 
 onMounted(async () => {
   const provider = route.params.provider as string
   const code = route.query.code as string
 
   if (!provider || !code) {
-    alert('잘못된 접근입니다.')
+    await modalStore.openAppModal({
+      title: '잘못된 접근',
+      content: '잘못된 접근입니다.',
+      type: 'error',
+    })
     router.replace('/login')
     return
   }
@@ -24,7 +30,11 @@ onMounted(async () => {
 
     if (!urlState || urlState !== savedState) {
       console.error('[OAuthCallback] State mismatch', { urlState, savedState })
-      alert('잘못된 접근입니다. (보안 경고)')
+      await modalStore.openAppModal({
+        title: '보안 경고',
+        content: '잘못된 접근입니다. (State 불일치)',
+        type: 'error',
+      })
       sessionStorage.removeItem('naver_oauth_state')
       router.replace('/login')
       return
@@ -57,7 +67,11 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('[OAuthCallback] Login failed', error)
-    alert('로그인 처리에 실패했습니다. 다시 시도해주세요.')
+    await modalStore.openAppModal({
+      title: '로그인 실패',
+      content: '로그인 처리에 실패했습니다.\n다시 시도해주세요.',
+      type: 'error',
+    })
     router.replace('/login')
   }
 })

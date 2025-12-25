@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 import { useDietStore } from '@/composables/useDietStore'
+import { useModalStore } from '@/stores/modalStore'
 import {
   createDiet,
   getDietDetail,
@@ -27,6 +28,7 @@ import type { FoodItem, MealTime, SelectedFood } from '@/types/diet'
 
 const router = useRouter()
 const route = useRoute()
+const modalStore = useModalStore()
 
 const { selectedDate, consumeDraftMeal, consumeDraftSearch } = useDietStore()
 
@@ -401,6 +403,13 @@ async function confirmSave() {
       const response = await createDiet(payload)
       console.info('[DietRecord] diet create response', response)
     }
+
+    await modalStore.openAppModal({
+      title: isEditing.value ? '수정 완료' : '저장 완료',
+      content: '식단이 성공적으로 저장되었습니다.',
+      type: 'success',
+    })
+
     router.push('/diet')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Diet save failed.'
@@ -409,11 +418,20 @@ async function confirmSave() {
       message.includes('중복') ||
       message.includes('이미') ||
       message.toLowerCase().includes('duplicate')
-    alert(
-      duplicateHint
-        ? '해당 끼니는 하루에 1개만 저장됩니다.'
-        : '식단 저장에 실패했습니다. 잠시 후 다시 시도해주세요.',
-    )
+
+    if (duplicateHint) {
+      await modalStore.openAppModal({
+        title: '중복 저장',
+        content: '해당 끼니는 하루에\n1개만 저장됩니다.',
+        type: 'warning',
+      })
+    } else {
+      await modalStore.openAppModal({
+        title: '저장 실패',
+        content: '식단 저장에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+        type: 'error',
+      })
+    }
   } finally {
     isSaving.value = false
   }

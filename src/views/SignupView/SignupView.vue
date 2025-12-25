@@ -6,8 +6,10 @@ import type { SignupResult } from '@/types/signup'
 import { register } from '@/services/authService'
 import { buildRegisterPayload } from '@/utils/signupMapper'
 import { clearRegisterToken, getRegisterToken } from '@/services/registerTokenStore'
+import { useModalStore } from '@/stores/modalStore'
 
 const router = useRouter()
+const modalStore = useModalStore()
 const isSubmitting = ref(false)
 
 // OAuthCallback에서 전달받은 registerToken 확인
@@ -39,7 +41,11 @@ const handleComplete = async (payload: SignupResult) => {
   }
 
   if (!registerToken) {
-    alert('잘못된 접근입니다. 다시 로그인해주세요.')
+    await modalStore.openAppModal({
+      title: '잘못된 접근',
+      content: '회원가입 세션이 만료되었습니다.\n다시 로그인해주세요.',
+      type: 'error',
+    })
     clearRegisterToken()
     router.push('/login')
     return
@@ -55,10 +61,19 @@ const handleComplete = async (payload: SignupResult) => {
 
     // 회원가입 후 로그인 성공 처리 -> 메인으로 이동
     clearRegisterToken()
+
+    // Note: Success modal is typically not needed if auto-redirecting to onboarding/home,
+    // but we can add one if desired. Previous logic just redirected.
+    // Let's stick to redirect for success as per user instructions.
+
     router.push('/home')
   } catch (error) {
     console.error('Signup failed:', error)
-    alert('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    await modalStore.openAppModal({
+      title: '가입 실패',
+      content: '회원가입 처리에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
     clearRegisterToken()
     router.push('/login')
   } finally {

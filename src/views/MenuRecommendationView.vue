@@ -2,8 +2,10 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { menuList, type MenuItem } from '@/data/menuData'
+import { useModalStore } from '@/stores/modalStore'
 
 const router = useRouter()
+const modalStore = useModalStore()
 
 // --- State ---
 const selectedCategory = ref<string>('전체')
@@ -26,10 +28,14 @@ const filteredMenus = computed(() => {
 })
 
 // --- Methods ---
-const startRecommendation = () => {
+const startRecommendation = async () => {
   if (isAnimating.value) return
   if (filteredMenus.value.length === 0) {
-    alert('해당 조건에 맞는 메뉴가 없습니다.')
+    await modalStore.openAppModal({
+      title: '메뉴 없음',
+      content: '해당 조건에 맞는 메뉴가 없습니다.',
+      type: 'warning',
+    })
     return
   }
 

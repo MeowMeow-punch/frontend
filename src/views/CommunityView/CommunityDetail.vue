@@ -8,6 +8,7 @@ import {
   type CommunityDetailPost,
   type CommunityRelatedPost,
 } from '@/services/communityService'
+import { useModalStore } from '@/stores/modalStore'
 
 const props = defineProps<{ postId: number }>()
 const emit = defineEmits<{
@@ -15,6 +16,7 @@ const emit = defineEmits<{
   (event: 'select-article', postId: number): void
 }>()
 
+const modalStore = useModalStore()
 const isShareOpen = ref(false)
 const isMobile = ref(false)
 const isLoading = ref(false)
@@ -120,7 +122,11 @@ const toggleLike = async () => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Community like failed.'
     console.warn('[CommunityDetail] like error', { message })
-    alert('좋아요 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    await modalStore.openAppModal({
+      title: '오류 발생',
+      content: '좋아요 처리에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
   } finally {
     isLiking.value = false
   }
@@ -138,6 +144,11 @@ const selectRelated = (postId: number | null | undefined) => {
 const handleShareOption = (optionName: string) => {
   if (optionName === '링크 복사' && typeof navigator !== 'undefined' && navigator.clipboard) {
     navigator.clipboard.writeText(window.location.href).catch(() => null)
+    modalStore.openAppModal({
+      title: '링크 복사 완료',
+      content: '게시글 링크가 클립보드에 복사되었습니다.',
+      type: 'success',
+    })
   }
   isShareOpen.value = false
 }

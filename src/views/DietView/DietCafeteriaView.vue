@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Share2 } from 'lucide-vue-next'
 import CafeteriaMenuCard from '@/components/Diet/CafeteriaMenuCard.vue'
+import { useModalStore } from '@/stores/modalStore'
 import {
   getRestaurantMenu,
   registerRestaurantDiet,
@@ -36,6 +37,7 @@ const days = ['월', '화', '수', '목', '금']
 
 const menuBySlot = ref<Record<string, RestaurantMenuItem[]>>({})
 const isLoadingMenu = ref(false)
+const modalStore = useModalStore()
 const isRegistering = ref(false)
 
 const slotTime = {
@@ -131,7 +133,15 @@ const handleAddMenu = async (
   mealType: DietMealType,
 ) => {
   if (isRegistering.value) return
-  if (!confirm(`[${menu.main}] 식단을 기록하시겠습니까?`)) return
+
+  const confirmed = await modalStore.openAppModal({
+    title: '식단 기록',
+    content: `[${menu.main}]\n식단을 기록하시겠습니까?`,
+    type: 'confirm',
+    confirmText: '기록하기',
+  })
+
+  if (!confirmed) return
 
   isRegistering.value = true
   try {
@@ -143,19 +153,34 @@ const handleAddMenu = async (
     }
     console.info('[DietCafeteria] register request', payload)
     await registerRestaurantDiet(payload)
-    alert('식단이 기록되었습니다.')
+
+    await modalStore.openAppModal({
+      title: '기록 완료',
+      content: '식단이 성공적으로 기록되었습니다.',
+      type: 'success',
+    })
+
     router.push({ path: '/diet', query: { date: formatDate(selectedDate.value) } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Register failed'
     console.warn('[DietCafeteria] register error', message)
+
     if (
       message.includes('중복') ||
       message.includes('already') ||
       message.toLowerCase().includes('duplicate')
     ) {
-      alert('이미 해당 식사 시간에 기록된 식단이 있습니다.')
+      await modalStore.openAppModal({
+        title: '중복 기록',
+        content: '이미 해당 식사 시간에\n기록된 식단이 있습니다.',
+        type: 'warning',
+      })
     } else {
-      alert('식단 기록에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      await modalStore.openAppModal({
+        title: '오류 발생',
+        content: '식단 기록에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+        type: 'error',
+      })
     }
   } finally {
     isRegistering.value = false

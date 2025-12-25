@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export type ModalType = 'alert' | 'confirm' | 'success' | 'error' | 'warning'
+export type ModalType = 'alert' | 'confirm' | 'success' | 'error' | 'warning' | 'info'
 
 export interface ModalOptions {
   title: string
