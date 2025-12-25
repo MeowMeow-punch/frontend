@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   AlertCircle,
   Bot,
@@ -36,7 +36,16 @@ import { getMealLabel, getMealTime } from '@/utils/diet/dietUtils'
 import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
+const route = useRoute()
 const { selectedDate, cafeteriaMealIds, markCafeteriaMeal } = useDietStore()
+
+// Initialize selectedDate from query parameter if present
+if (route.query.date && typeof route.query.date === 'string') {
+  const queryDate = new Date(route.query.date)
+  if (!isNaN(queryDate.getTime())) {
+    selectedDate.value = queryDate
+  }
+}
 
 const selectedMealId = ref<number | null>(null)
 const selectedMealDetail = ref<DietDetailInfo | null>(null)
