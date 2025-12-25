@@ -6,9 +6,16 @@ const props = defineProps<{
   targetCalories: number
 }>()
 
-const caloriePercentage = computed(() =>
-  Math.min(100, Math.round((props.totalCalories / props.targetCalories) * 100)),
-)
+const caloriePercentage = computed(() => {
+  if (!props.targetCalories) return 0
+  return Math.round((props.totalCalories / props.targetCalories) * 100)
+})
+
+const progressColor = computed(() => {
+  if (caloriePercentage.value < 85) return 'var(--gray-400)' // 부족 (Gray)
+  if (caloriePercentage.value >= 115) return '#FF3B30' // 과다 (Red)
+  return '#00C73C' // 적정 (Green)
+})
 </script>
 
 <template>
@@ -25,13 +32,18 @@ const caloriePercentage = computed(() =>
       </div>
       <div class="text-right">
         <p class="mb-1 text-[13px] font-medium text-[var(--gray-600)]">달성률</p>
-        <p class="text-[22px] font-bold text-[var(--gray-900)]">{{ caloriePercentage }}%</p>
+        <p class="text-[22px] font-bold" :style="{ color: progressColor }">
+          {{ caloriePercentage }}%
+        </p>
       </div>
     </div>
     <div class="h-2 overflow-hidden rounded-full bg-[var(--gray-200)]">
       <div
-        class="h-full rounded-full bg-[var(--main-300)]"
-        :style="{ width: `${caloriePercentage}%` }"
+        class="h-full rounded-full transition-colors duration-300"
+        :style="{
+          width: `${Math.min(100, caloriePercentage)}%`,
+          backgroundColor: progressColor,
+        }"
       />
     </div>
   </div>
