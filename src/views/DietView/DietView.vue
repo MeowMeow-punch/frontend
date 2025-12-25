@@ -144,7 +144,7 @@ const selectedMeal = computed(() => {
         protein: detail.nutrients?.protein ?? 0,
         fat: detail.nutrients?.fat ?? 0,
       },
-      foods: (detail.foods ?? []).map((food) => ({
+      foods: (detail.foods ?? []).map((food, index) => ({
         id: food.foodId,
         name: food.name,
         calories: food.calorie,
@@ -152,7 +152,7 @@ const selectedMeal = computed(() => {
         protein: food.nutrients?.protein ?? 0,
         fat: food.nutrients?.fat ?? 0,
         servingSize: `${food.amount}g`,
-        image: resolveDietImageUrl(food.thumbnailUrl),
+        image: resolveDietImageUrl(detail.thumbnailUrls?.[index] ?? food.thumbnailUrl),
         quantity: food.quantity,
       })),
     }

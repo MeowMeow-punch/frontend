@@ -131,6 +131,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // 3. Unauthorized (401)
+    if (status === 401) {
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
+
     // 3. Forbidden (403)
     if (status === 403) {
       window.location.href = '/error/403'

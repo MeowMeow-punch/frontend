@@ -140,18 +140,21 @@ const mapDetailFoods = (
     thumbnailUrl?: string | null
   }>,
 ): SelectedFood[] =>
-  foods.map((food) => ({
-    id: food.foodId,
-    name: food.name,
-    calories: food.calorie,
-    protein: food.nutrients?.protein ?? 0,
-    carbs: food.nutrients?.carbs ?? 0,
-    fat: food.nutrients?.fat ?? 0,
-    servingSize: `${food.quantity} serving`,
-    image: resolveDietImageUrl(food.thumbnailUrl),
-    category: '기타',
-    quantity: food.quantity,
-  }))
+  foods.map((food) => {
+    const qty = food.quantity || 1
+    return {
+      id: food.foodId,
+      name: food.name,
+      calories: Math.round(food.calorie / qty),
+      protein: Math.round((food.nutrients?.protein ?? 0) / qty),
+      carbs: Math.round((food.nutrients?.carbs ?? 0) / qty),
+      fat: Math.round((food.nutrients?.fat ?? 0) / qty),
+      servingSize: `${food.quantity} serving`,
+      image: resolveDietImageUrl(food.thumbnailUrl),
+      category: '기타',
+      quantity: food.quantity,
+    }
+  })
 
 const loadMealDetail = async (dietId: number) => {
   isMealLoading.value = true
