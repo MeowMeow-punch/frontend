@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ArrowLeft, Check, X } from 'lucide-vue-next'
 import { updateProfile } from '@/services/authService'
 import StepAffiliationSearch from '@/components/Signup/StepAffiliationSearch.vue'
+import { useModalStore } from '@/stores/modalStore'
 
 type ProfileForm = {
   nickname: string
@@ -36,6 +37,8 @@ const emit = defineEmits<{
 const props = defineProps<{
   profile: ProfileForm
 }>()
+
+const modalStore = useModalStore()
 
 const formData = reactive({
   nickname: '',
@@ -88,11 +91,15 @@ const toggleAllergy = (allergy: string) => {
   }
 }
 
-const handleToggleSocial = (platform: 'google' | 'kakao' | 'naver') => {
+const handleToggleSocial = async (platform: 'google' | 'kakao' | 'naver') => {
   const connectedCount = Object.values(socialConnections).filter(Boolean).length
 
   if (socialConnections[platform] && connectedCount === 1) {
-    alert('최소 하나의 소셜 계정은 연결되어 있어야 합니다.')
+    await modalStore.openAppModal({
+      title: '연동 해제 불가',
+      content: '최소 하나의 소셜 계정은\n연결되어 있어야 합니다.',
+      type: 'warning',
+    })
     return
   }
 
@@ -138,30 +145,50 @@ const handleSave = async () => {
 
   const trimmedNickname = formData.nickname.trim()
   if (!trimmedNickname || trimmedNickname.length < 2 || trimmedNickname.length > 10) {
-    alert('닉네임은 2~10자로 입력해주세요.')
+    await modalStore.openAppModal({
+      title: '닉네임 오류',
+      content: '닉네임은 2~10자로 입력해주세요.',
+      type: 'warning',
+    })
     return
   }
 
   if (!formData.gender) {
-    alert('성별을 선택해주세요.')
+    await modalStore.openAppModal({
+      title: '입력 확인',
+      content: '성별을 선택해주세요.',
+      type: 'warning',
+    })
     return
   }
 
   const heightValue = Number(formData.height)
   if (!Number.isFinite(heightValue) || heightValue <= 0) {
-    alert('키를 올바르게 입력해주세요.')
+    await modalStore.openAppModal({
+      title: '입력 확인',
+      content: '키를 올바르게 입력해주세요.',
+      type: 'warning',
+    })
     return
   }
 
   const weightValue = Number(formData.weight)
   if (!Number.isFinite(weightValue) || weightValue <= 0) {
-    alert('몸무게를 올바르게 입력해주세요.')
+    await modalStore.openAppModal({
+      title: '입력 확인',
+      content: '몸무게를 올바르게 입력해주세요.',
+      type: 'warning',
+    })
     return
   }
 
   const ageValue = Number(formData.age)
   if (!Number.isFinite(ageValue) || ageValue <= 0) {
-    alert('나이를 올바르게 입력해주세요.')
+    await modalStore.openAppModal({
+      title: '입력 확인',
+      content: '나이를 올바르게 입력해주세요.',
+      type: 'warning',
+    })
     return
   }
 
@@ -183,7 +210,11 @@ const handleSave = async () => {
       console.info('[MyPage] profile update response', response)
     }
     if (response.code !== 200) {
-      alert(response.message || '개인정보 수정에 실패했습니다.')
+      await modalStore.openAppModal({
+        title: '저장 실패',
+        content: response.message || '개인정보 수정에 실패했습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -199,7 +230,11 @@ const handleSave = async () => {
     })
   } catch (error) {
     console.error('Profile update failed:', error)
-    alert('개인정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    await modalStore.openAppModal({
+      title: '오류 발생',
+      content: '개인정보 수정에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
   } finally {
     isSaving.value = false
   }

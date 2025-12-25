@@ -8,6 +8,7 @@ import StepMealCount from '@/components/Signup/StepMealCount.vue'
 import StepActivityLevel from '@/components/Signup/StepActivityLevel.vue'
 import StepTargetWeight from '@/components/Signup/StepTargetWeight.vue'
 import { updateDiet, type UpdateDietRequest } from '@/services/authService'
+import { useModalStore } from '@/stores/modalStore'
 
 type UserType = '영양관리' | '다이어트' | '체중증량'
 type FocusType = 'diet' | 'bulkup'
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   (e: 'save', payload: { focus: UserType; targetWeight: string }): void
 }>()
 
+const modalStore = useModalStore()
 const selectedType = ref<UserType | null>(null)
 const step = ref<Step>('type')
 
@@ -144,12 +146,20 @@ const handleComplete = async () => {
   }
 
   if (!mealCount.value) {
-    alert('식사 횟수를 선택해주세요.')
+    await modalStore.openAppModal({
+      title: '선택 누락',
+      content: '식사 횟수를 선택해주세요.',
+      type: 'warning',
+    })
     return
   }
 
   if (!activityLevel.value) {
-    alert('활동량을 선택해주세요.')
+    await modalStore.openAppModal({
+      title: '선택 누락',
+      content: '활동량을 선택해주세요.',
+      type: 'warning',
+    })
     return
   }
 
@@ -158,7 +168,11 @@ const handleComplete = async () => {
   if (focus !== 'HEALTHY') {
     const parsedTarget = Number(targetWeight.value)
     if (!Number.isFinite(parsedTarget) || parsedTarget <= 0) {
-      alert('목표 체중을 올바르게 입력해주세요.')
+      await modalStore.openAppModal({
+        title: '입력 오류',
+        content: '목표 체중을 올바르게 입력해주세요.',
+        type: 'warning',
+      })
       return
     }
     targetWeightValue = parsedTarget
@@ -177,7 +191,11 @@ const handleComplete = async () => {
 
     const response = await updateDiet(payload)
     if (response.code !== 200) {
-      alert(response.message || '목표 수정에 실패했습니다.')
+      await modalStore.openAppModal({
+        title: '수정 실패',
+        content: response.message || '목표 수정에 실패했습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -187,7 +205,11 @@ const handleComplete = async () => {
     })
   } catch (error) {
     console.error('Diet update failed:', error)
-    alert('목표 수정에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    await modalStore.openAppModal({
+      title: '오류 발생',
+      content: '목표 수정에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
   } finally {
     isSaving.value = false
   }

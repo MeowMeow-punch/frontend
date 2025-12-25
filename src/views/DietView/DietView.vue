@@ -19,6 +19,7 @@ import {
 import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 import WeekCalendar from '@/components/Diet/WeekCalendar.vue'
 import { useDietStore } from '@/composables/useDietStore'
+import { useModalStore } from '@/stores/modalStore'
 import {
   deleteDiet,
   getDietDaily,
@@ -37,6 +38,7 @@ import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
 const route = useRoute()
+const modalStore = useModalStore()
 const { selectedDate, cafeteriaMealIds, markCafeteriaMeal } = useDietStore()
 
 // Initialize selectedDate from query parameter if present
@@ -185,9 +187,16 @@ const totalCalories = computed(() => dailySummary.value?.calorie?.current ?? 0)
 const targetCalories = computed(() => dailySummary.value?.calorie?.goal ?? 0)
 const caloriePercentage = computed(() => {
   if (!targetCalories.value) return 0
-  return (totalCalories.value / targetCalories.value) * 100
+  return Math.round((totalCalories.value / targetCalories.value) * 100)
 })
+
 const calorieBarWidth = computed(() => `${Math.min(100, caloriePercentage.value)}%`)
+
+const progressColor = computed(() => {
+  if (caloriePercentage.value < 85) return 'var(--gray-400)' // 부족 (Gray)
+  if (caloriePercentage.value >= 115) return '#FF3B30' // 과다 (Red)
+  return '#00C73C' // 적정 (Green)
+})
 
 const macroNutrients = computed(() => ({
   carbs: {
@@ -447,18 +456,38 @@ function goToEdit(mealId: number) {
 }
 
 async function confirmDelete(mealId: number) {
-  const ok = window.confirm('이 식단 기록을 삭제할까요?')
-  if (!ok) return
+  const confirmed = await modalStore.openAppModal({
+    title: '식단 삭제',
+    content: '이 식단 기록을 삭제할까요?\n삭제된 데이터는 복구할 수 없습니다.',
+    type: 'confirm',
+    confirmText: '삭제하기',
+    cancelText: '취소',
+  })
+
+  if (!confirmed) return
+
   try {
     console.info('[DietView] diet delete request', { mealId })
     const response = await deleteDiet(mealId)
     console.info('[DietView] diet delete response', response)
+
+    await modalStore.openAppModal({
+      title: '삭제 완료',
+      content: '식단 기록이 삭제되었습니다.',
+      type: 'success',
+    })
+
     closeMeal()
     await fetchDailyData(selectedDate.value)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Diet delete failed.'
     console.warn('[DietView] diet delete error', { mealId, message })
-    alert('식단 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
+
+    await modalStore.openAppModal({
+      title: '삭제 실패',
+      content: '식단 삭제에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
   }
 }
 
@@ -497,7 +526,10 @@ watch(
               </div>
               <div class="text-right">
                 <p class="mb-1 text-[13px] font-medium text-[var(--gray-600)]">달성률</p>
-                <p class="text-[22px] font-bold tracking-[-0.02em] text-[var(--gray-900)]">
+                <p
+                  class="text-[22px] font-bold tracking-[-0.02em]"
+                  :style="{ color: progressColor }"
+                >
                   {{ caloriePercentage.toFixed(0) }}%
                 </p>
               </div>
@@ -505,8 +537,8 @@ watch(
 
             <div class="mb-8 h-2 overflow-hidden rounded-full bg-[var(--gray-200)]">
               <div
-                class="h-full rounded-full bg-[#00C73C] transition-all duration-300"
-                :style="{ width: calorieBarWidth }"
+                class="h-full rounded-full transition-all duration-300"
+                :style="{ width: calorieBarWidth, backgroundColor: progressColor }"
               />
             </div>
 

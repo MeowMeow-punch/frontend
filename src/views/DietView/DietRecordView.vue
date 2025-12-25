@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next'
 import ImageWithFallback from '@/components/Diet/ImageWithFallback.vue'
 import { useDietStore } from '@/composables/useDietStore'
+import { useModalStore } from '@/stores/modalStore'
 import {
   createDiet,
   getDietDetail,
@@ -27,6 +28,7 @@ import type { FoodItem, MealTime, SelectedFood } from '@/types/diet'
 
 const router = useRouter()
 const route = useRoute()
+const modalStore = useModalStore()
 
 const { selectedDate, consumeDraftMeal, consumeDraftSearch } = useDietStore()
 
@@ -401,6 +403,13 @@ async function confirmSave() {
       const response = await createDiet(payload)
       console.info('[DietRecord] diet create response', response)
     }
+
+    await modalStore.openAppModal({
+      title: isEditing.value ? '수정 완료' : '저장 완료',
+      content: '식단이 성공적으로 저장되었습니다.',
+      type: 'success',
+    })
+
     router.push('/diet')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Diet save failed.'
@@ -409,11 +418,20 @@ async function confirmSave() {
       message.includes('중복') ||
       message.includes('이미') ||
       message.toLowerCase().includes('duplicate')
-    alert(
-      duplicateHint
-        ? '해당 끼니는 하루에 1개만 저장됩니다.'
-        : '식단 저장에 실패했습니다. 잠시 후 다시 시도해주세요.',
-    )
+
+    if (duplicateHint) {
+      await modalStore.openAppModal({
+        title: '중복 저장',
+        content: '해당 끼니는 하루에\n1개만 저장됩니다.',
+        type: 'warning',
+      })
+    } else {
+      await modalStore.openAppModal({
+        title: '저장 실패',
+        content: '식단 저장에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+        type: 'error',
+      })
+    }
   } finally {
     isSaving.value = false
   }
@@ -425,7 +443,7 @@ function goBack() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#F2F4F6] pb-20 font-sans md:pb-0">
+  <div class="min-h-screen bg-[#F2F4F6] pb-32 font-sans lg:pb-0">
     <div class="sticky top-0 z-30 border-b border-[var(--gray-200)] bg-white">
       <div class="mx-auto max-w-6xl px-4 md:px-8">
         <div class="flex h-16 items-center">
@@ -709,18 +727,40 @@ function goBack() {
 
               <button
                 type="button"
-                class="flex h-14 w-full items-center justify-center rounded-[16px] bg-[#00C73C] text-[17px] font-bold text-white shadow-lg shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                class="hidden h-14 w-full items-center justify-center rounded-[16px] bg-[#00C73C] text-[17px] font-bold text-white shadow-lg shadow-[#00C73C]/20 transition-all hover:bg-[#00B035] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 lg:flex"
                 :disabled="selectedFoods.length === 0 || isSaving"
                 @click="confirmSave"
               >
                 {{ isSaving ? '저장 중...' : isEditing ? '수정 완료' : '기록하기' }}
               </button>
-              <p class="text-center text-[12px] text-[var(--gray-400)]">
+              <p class="hidden text-center text-[12px] text-[var(--gray-400)] lg:block">
                 하루에 끼니별 식단은 1개만 저장됩니다.
               </p>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Mobile Fixed Bottom Bar -->
+    <div
+      class="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--gray-200)] bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.05)] lg:hidden"
+    >
+      <div class="flex items-center gap-4">
+        <div class="flex flex-col">
+          <span class="text-[12px] font-medium text-[var(--gray-500)]">
+            총 {{ selectedFoods.length }}개 선택
+          </span>
+          <span class="text-[18px] font-bold text-[var(--gray-900)]"> {{ totalKcal }}kcal </span>
+        </div>
+        <button
+          type="button"
+          class="flex h-12 flex-1 items-center justify-center rounded-[14px] bg-[#00C73C] text-[16px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="selectedFoods.length === 0 || isSaving"
+          @click="confirmSave"
+        >
+          {{ isSaving ? '저장 중...' : isEditing ? '수정 완료' : '기록하기' }}
+        </button>
       </div>
     </div>
   </div>

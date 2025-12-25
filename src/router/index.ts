@@ -104,7 +104,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
   // 라우트 이동 시마다 스토어 상태 갱신 (쿠키/스토리지 확인)
   authStore.updateAuthStatus()

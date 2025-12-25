@@ -21,9 +21,11 @@ import {
 } from '@/services/dietService'
 import { getUserProfile } from '@/services/authService'
 import { getAuthMode, isAuthenticated } from '@/services/tokenStore'
+import { useModalStore } from '@/stores/modalStore'
 import type { MealTime } from '@/types/diet'
 
 const router = useRouter()
+const modalStore = useModalStore()
 const goTo = (path: string) => router.push(path)
 const { setDraftMeal, setDraftSearch, markCafeteriaMeal } = useDietStore()
 
@@ -57,6 +59,13 @@ async function registerCafeteriaMeal(meal: RecommendedMeal) {
     if (Number.isFinite(myDietId)) {
       markCafeteriaMeal(Number(myDietId))
     }
+
+    await modalStore.openAppModal({
+      title: '식단 등록 완료',
+      content: '사내 식단이 성공적으로 등록되었습니다.',
+      type: 'success',
+    })
+
     goTo('/diet')
   } catch (error) {
     const message =
@@ -66,11 +75,20 @@ async function registerCafeteriaMeal(meal: RecommendedMeal) {
       message.includes('중복') ||
       message.includes('이미') ||
       message.toLowerCase().includes('duplicate')
-    alert(
-      duplicateHint
-        ? '같은 시간대 식단은 하루에 1개만 등록할 수 있습니다.'
-        : '사내 식단 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
-    )
+
+    if (duplicateHint) {
+      await modalStore.openAppModal({
+        title: '중복 식단',
+        content: '같은 시간대 식단은\n하루에 1개만 등록할 수 있습니다.',
+        type: 'warning',
+      })
+    } else {
+      await modalStore.openAppModal({
+        title: '등록 실패',
+        content: '사내 식단 등록에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+        type: 'error',
+      })
+    }
   } finally {
     isQuickAddPending.value = false
   }
@@ -273,9 +291,9 @@ const fetchWeeklyOverview = async () => {
     if (profileResult.status === 'fulfilled') {
       const activitySummary = profileResult.value.data?.activitySummary
       const userProfile = profileResult.value.data?.userProfile
-      const streakCount = activitySummary?.streak?.count ?? 0
-      const weeklyDietCount = activitySummary?.weeklyDiet?.count ?? 0
-      const weeklyDietGoal = activitySummary?.weeklyDiet?.goal ?? 0
+      const streakCount = activitySummary?.streak?.currentDays ?? 0
+      const weeklyDietCount = activitySummary?.weeklyDiet?.recordedCount ?? 0
+      const weeklyDietGoal = activitySummary?.weeklyDiet?.targetCount ?? 0
       const achievementPercent =
         weeklyDietGoal > 0 ? Math.round((weeklyDietCount / weeklyDietGoal) * 100) : 0
 
