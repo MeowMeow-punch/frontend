@@ -135,6 +135,7 @@ const selectedMeal = computed(() => {
       title: detail.title,
       editable: detail.isEditable,
       isCafeteria,
+      thumbnails: detailThumbnails,
       nutrition: {
         calories: detail.calorie,
         carbs: detail.nutrients?.carbs ?? 0,
@@ -166,6 +167,7 @@ const selectedMeal = computed(() => {
       title: fallbackMeal.title,
       editable: !isCafeteria,
       isCafeteria,
+      thumbnails: fallbackMeal.thumbnails ?? [],
       nutrition: {
         calories: fallbackMeal.calorie,
         carbs: fallbackMeal.nutrients.carbs,
@@ -902,19 +904,19 @@ watch(
                   >
                     <div class="grid h-full grid-cols-2 gap-0.5">
                       <div
-                        v-for="(food, i) in selectedMeal.foods.slice(0, 4)"
-                        :key="`${selectedMeal.id}-${food.id}-${i}`"
+                        v-for="(thumb, i) in selectedMeal.thumbnails.slice(0, 4)"
+                        :key="`${selectedMeal.id}-${thumb}-${i}`"
                         class="relative h-full"
-                        :class="selectedMeal.foods.length === 1 ? 'col-span-2 row-span-2' : ''"
+                        :class="selectedMeal.thumbnails.length === 1 ? 'col-span-2 row-span-2' : ''"
                       >
                         <ImageWithFallback
-                          :src="food.image"
-                          :alt="food.name"
+                          :src="thumb"
+                          :alt="selectedMeal.title"
                           class="h-full w-full object-cover"
                         />
                       </div>
                       <div
-                        v-for="i in Math.max(0, 4 - selectedMeal.foods.length)"
+                        v-for="i in Math.max(0, 4 - selectedMeal.thumbnails.length)"
                         :key="`empty-${selectedMeal.id}-${i}`"
                         class="bg-[var(--gray-50)]"
                       />
