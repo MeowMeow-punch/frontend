@@ -1,6 +1,6 @@
 import type { CommunityDetailPost, CommunitySummary } from '@/services/communityService'
 
-const dummyContent = (title: string, body: string) => `
+const dummyContent = (_title: string, body: string) => `
   <div class="space-y-6 text-[16px] leading-relaxed text-[#333]">
     <div class="prose prose-lg max-w-none">
        ${body}
