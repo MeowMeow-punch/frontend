@@ -42,11 +42,13 @@ const router = createRouter({
       path: '/home', // 메인 홈 (로그인 후)
       name: 'home',
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/community',
       name: 'community', // 커뮤니티
       component: CommunityView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/mypage',
@@ -76,6 +78,7 @@ const router = createRouter({
       path: '/menu-recommendation',
       name: 'menu-recommendation',
       component: MenuRecommendationView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/error/500',
