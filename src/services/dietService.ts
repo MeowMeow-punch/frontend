@@ -265,6 +265,7 @@ export const getDietMain = async () => {
     method: 'GET',
     withAuth: true,
     errorMessage: 'Diet main fetch failed.',
+    skipGlobalError: true,
   })
 
   return response.data
@@ -301,6 +302,7 @@ export const getDietDaily = async (date: string) => {
     withAuth: true,
     query: { date },
     errorMessage: 'Diet daily fetch failed.',
+    skipGlobalError: true,
   })
 
   return response.data

@@ -15,6 +15,7 @@ type ApiOptions = {
   query?: Record<string, string | number | boolean>
   acceptStatuses?: number[]
   errorMessage?: string
+  skipGlobalError?: boolean
 }
 
 type ApiErrorPayload = {
@@ -117,6 +118,12 @@ apiClient.interceptors.response.use(
     // router instance 동적 import 또는 router/index.ts에서 가져오기
     // 순환 참조 방지를 위해 여기서 router를 직접 import
     const status = error.response?.status
+    const config = error.config as InternalAxiosRequestConfig & { skipGlobalError?: boolean }
+
+    // skipGlobalError 옵션이 있으면 리다이렉트 안 함
+    if (config?.skipGlobalError) {
+      return Promise.reject(error)
+    }
 
     // 1. Network Error (서버 다운, 인터넷 연결 끊김 등)
     if (!error.response && error.code !== 'ERR_CANCELED') {
@@ -160,6 +167,7 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
     query,
     acceptStatuses = [],
     errorMessage = 'Request failed.',
+    skipGlobalError = false,
   } = options
 
   const requestHeaders = new AxiosHeaders({
@@ -167,7 +175,7 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
     ...headers,
   })
 
-  const config: AxiosRequestConfig = {
+  const config: AxiosRequestConfig & { skipGlobalError?: boolean } = {
     url: path,
     method,
     headers: requestHeaders,
@@ -176,6 +184,7 @@ export const apiFetch = async <T>(path: string, options: ApiOptions = {}): Promi
     withAuth,
     validateStatus: (status) =>
       Boolean(status && status >= 200 && status < 300) || acceptStatuses.includes(status ?? 0),
+    skipGlobalError,
   }
 
   try {

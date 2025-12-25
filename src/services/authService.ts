@@ -278,6 +278,7 @@ export const getUserProfile = async (): Promise<UserProfileResponse> => {
     method: 'GET',
     withAuth: true,
     errorMessage: 'User profile fetch failed.',
+    skipGlobalError: true,
   })
 }
 
