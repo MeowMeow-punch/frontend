@@ -92,6 +92,8 @@ export const resolveCommunityImageUrl = (path?: string | null) => {
   return `${normalizeBase(IMAGE_BASE_URL)}/${normalizePath(path)}`
 }
 
+import { MOCK_COMMUNITY_DATA, MOCK_COMMUNITY_SUMMARIES } from '@/data/communityDummy'
+
 export const getCommunityList = async (params: {
   category: string
   cursorId?: string | null
@@ -105,41 +107,138 @@ export const getCommunityList = async (params: {
     query.size = params.size
   }
 
-  const response = await apiFetch<CommunityListResponse>('/community', {
-    method: 'GET',
-    withAuth: true,
-    query,
-    acceptStatuses: [204],
-    errorMessage: 'Community list fetch failed.',
-  })
+  try {
+    const response = await apiFetch<CommunityListResponse>('/community', {
+      method: 'GET',
+      withAuth: true,
+      query,
+      acceptStatuses: [204],
+      errorMessage: 'Community list fetch failed.',
+    })
 
-  const data = response.data
-  if (!data || typeof data !== 'object' || !('posts' in data)) {
-    return { posts: [], pageInfo: { nextCursor: null, hasNext: false } }
+    const data = response.data
+    // Check if real data exists
+    if (
+      data &&
+      typeof data === 'object' &&
+      'posts' in data &&
+      Array.isArray(data.posts) &&
+      data.posts.length > 0
+    ) {
+      return data
+    }
+  } catch (e) {
+    console.warn('[Community] API failed, falling back to dummy data', e)
   }
 
-  return data
+  // Fallback to dummy data
+  // Filter by category
+  let filtered = MOCK_COMMUNITY_SUMMARIES
+  if (params.category !== 'ALL') {
+    filtered = filtered.filter((item) => item.category === params.category)
+  }
+
+  // Pagination logic simulation
+  const size = params.size ?? 10
+  let startIndex = 0
+  if (params.cursorId) {
+    const cursorIdNum = Number(params.cursorId)
+    const cursorIndex = filtered.findIndex((item) => (item.postId ?? item.id) === cursorIdNum)
+    if (cursorIndex !== -1) {
+      startIndex = cursorIndex + 1
+    }
+  }
+
+  const sliced = filtered.slice(startIndex, startIndex + size)
+  const nextItem = filtered[startIndex + size]
+  const nextCursor = nextItem ? String(nextItem.postId ?? nextItem.id) : null
+
+  return {
+    posts: sliced,
+    pageInfo: {
+      nextCursor,
+      hasNext: !!nextItem,
+    },
+  }
 }
 
 export const getCommunityDetail = async (communityId: number) => {
-  const response = await apiFetch<CommunityDetailResponse>(`/community/${communityId}`, {
-    method: 'GET',
-    withAuth: true,
-    errorMessage: 'Community detail fetch failed.',
-  })
+  try {
+    const response = await apiFetch<CommunityDetailResponse>(`/community/${communityId}`, {
+      method: 'GET',
+      withAuth: true,
+      errorMessage: 'Community detail fetch failed.',
+    })
 
-  return response.data
+    if (response.data && response.data.post) {
+      return response.data
+    }
+  } catch (e) {
+    console.warn('[Community] Detail API failed, falling back to dummy data', e)
+  }
+
+  // Fallback
+  const post = MOCK_COMMUNITY_DATA.find((p) => p.postId === communityId)
+  if (!post) {
+    throw new Error('Community post not found (dummy)')
+  }
+
+  // Related posts simulation (randomly pick 2 others)
+  const relatedPosts = MOCK_COMMUNITY_SUMMARIES.filter((p) => (p.postId ?? p.id) !== communityId)
+    .slice(0, 2)
+    .map((p) => ({
+      id: p.postId,
+      postId: p.postId,
+      title: p.title,
+      thumbnailUrl: p.thumbnailUrl,
+      category: p.category,
+      previewText: p.previewText,
+    }))
+
+  return {
+    post,
+    relatedPosts,
+  }
 }
 
 export const searchCommunity = async (keyword: string) => {
-  const response = await apiFetch<CommunitySearchResponse>('/community/search', {
-    method: 'GET',
-    withAuth: true,
-    query: { keyword },
-    errorMessage: 'Community search failed.',
-  })
+  try {
+    const response = await apiFetch<CommunitySearchResponse>('/community/search', {
+      method: 'GET',
+      withAuth: true,
+      query: { keyword },
+      errorMessage: 'Community search failed.',
+    })
 
-  return response.data
+    if (response.data && response.data.posts) {
+      return response.data
+    }
+  } catch (e) {
+    console.warn('[Community] Search API failed, falling back to dummy data')
+  }
+
+  // Search dummy data
+  const lowerKeyword = keyword.toLowerCase()
+  const matched = MOCK_COMMUNITY_DATA.filter(
+    (p) =>
+      p.title.toLowerCase().includes(lowerKeyword) ||
+      p.content.toLowerCase().includes(lowerKeyword),
+  )
+
+  return {
+    searchNum: matched.length,
+    posts: matched.map((p) => ({
+      postId: p.postId,
+      title: p.title,
+      thumbnailUrl: p.thumbnailUrl,
+      category: p.category,
+      readingtime: Math.ceil(p.content.length / 500) + '분',
+      previewText: p.content.replace(/<[^>]*>?/gm, '').slice(0, 100) + '...',
+      writer: p.writer,
+      likes: p.likes,
+      createdAt: p.createdAt,
+    })),
+  }
 }
 
 export const updateCommunityLike = async (communityId: number, isLiked: boolean) => {
