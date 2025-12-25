@@ -26,11 +26,11 @@ const handleRetry = () => {
       </button>
 
       <button
-        @click="router.push('/home')"
+        @click="router.push('/')"
         class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--gray-200)] text-[17px] font-semibold text-[var(--gray-700)] transition hover:bg-[var(--gray-300)] active:scale-95"
       >
         <Home class="h-5 w-5" />
-        <span>홈으로 가기</span>
+        <span>메인으로 가기</span>
       </button>
     </template>
   </ErrorLayout>
