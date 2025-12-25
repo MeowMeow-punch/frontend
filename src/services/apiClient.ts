@@ -102,8 +102,42 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       refreshPromise = null
       clearTokens()
+      // 토큰 갱신 실패 시 로그인 페이지로 이동 (쿼리로 현재 경로 전달 가능)
+      const currentPath = window.location.pathname
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
       return Promise.reject(refreshError)
     }
+  },
+)
+
+// Global Error Handler Interceptor (New)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // router instance 동적 import 또는 router/index.ts에서 가져오기
+    // 순환 참조 방지를 위해 여기서 router를 직접 import
+    const status = error.response?.status
+
+    // 1. Network Error (서버 다운, 인터넷 연결 끊김 등)
+    if (!error.response && error.code !== 'ERR_CANCELED') {
+      window.location.href = '/error/network'
+      return Promise.reject(error)
+    }
+
+    // 2. Server Error (5xx)
+    if (status && status >= 500) {
+      // 503 등 일시적 장애 포함하여 500 페이지로
+      window.location.href = '/error/500'
+      return Promise.reject(error)
+    }
+
+    // 3. Forbidden (403)
+    if (status === 403) {
+      window.location.href = '/error/403'
+      return Promise.reject(error)
+    }
+
+    return Promise.reject(error)
   },
 )
 

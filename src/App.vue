@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import NavBar from '@/components/NavBar/NavBar.vue' // 방금 만든 컴포넌트 임포트
+import GlobalModal from '@/components/Common/GlobalModal.vue'
 
 const route = useRoute()
-const showNav = computed(() => !route.meta?.hideNav)
 </script>
 
 <template>
-  <header v-if="showNav">
-    <NavBar />
-  </header>
-
+  <GlobalModal />
+  <NavBar v-if="!route.meta.hideNav" />
   <main>
     <RouterView />
   </main>

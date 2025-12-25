@@ -18,33 +18,35 @@ import EditGoal from '@/views/MyPageView/EditGoal.vue'
 import EditProfile from '@/views/MyPageView/EditProfile.vue'
 import PrivacyPolicy from '@/views/MyPageView/PrivacyPolicy.vue'
 import { getUserProfile, logout, updateProfile, withdraw } from '@/services/authService'
+import { useModalStore } from '@/stores/modalStore'
 
 type SubPage = 'main' | 'edit-goal' | 'edit-profile' | 'privacy'
 
 const router = useRouter()
-const nickname = ref('건강한하루')
+const modalStore = useModalStore()
+const nickname = ref('')
 const tempNickname = ref(nickname.value)
 const isEditingNickname = ref(false)
 const currentSubPage = ref<SubPage>('main')
 const isDev = import.meta.env.DEV
 
 const userInfo = reactive({
-  email: 'user@pickit.com',
-  joinDate: '2024.11.01',
-  gender: '남성',
-  height: 175,
-  age: 28,
-  allergies: ['새우', '땅콩'],
-  group: 'SSAFY 12기',
-  userType: '영양관리',
-  startWeight: 75,
-  currentWeight: 72.7,
-  targetWeight: 68,
-  lastWeightRecord: '2024.12.02',
-  totalRecordDays: 23,
-  consecutiveDays: 7,
-  thisWeekMealCount: 5,
-  thisWeekTargetMealCount: 7,
+  email: '',
+  joinDate: '',
+  gender: '',
+  height: 0,
+  age: 0,
+  allergies: [] as string[],
+  group: '',
+  userType: '',
+  startWeight: 0,
+  currentWeight: 0,
+  targetWeight: 0,
+  lastWeightRecord: '',
+  totalRecordDays: 0,
+  consecutiveDays: 0,
+  thisWeekMealCount: 0,
+  thisWeekTargetMealCount: 0,
   marketingConsent: false,
 })
 
@@ -66,30 +68,35 @@ const weeklyMealRate = computed(() => {
   return (userInfo.thisWeekMealCount / userInfo.thisWeekTargetMealCount) * 100
 })
 
-const handleNicknameUpdate = () => {
+const handleNicknameUpdate = async () => {
   const nextNickname = tempNickname.value.trim()
   if (nextNickname.length < 2 || nextNickname.length > 10) {
     return
   }
 
-  updateProfile({ nickname: nextNickname })
-    .then((response) => {
-      if (isDev) {
-        console.info('[MyPage] nickname update response', response)
-      }
-      if (response.code === 200) {
-        nickname.value = nextNickname
-        tempNickname.value = nextNickname
-        isEditingNickname.value = false
-        return
-      }
-
-      alert(response.message || '닉네임 변경에 실패했습니다.')
+  try {
+    const response = await updateProfile({ nickname: nextNickname })
+    if (isDev) {
+      console.info('[MyPage] nickname update response', response)
+    }
+    if (response.code === 200) {
+      nickname.value = nextNickname
+      tempNickname.value = nextNickname
+      isEditingNickname.value = false
+    } else {
+      modalStore.openAppModal({
+        title: '변경 실패',
+        content: response.message || '닉네임 변경에 실패했습니다.',
+        type: 'error',
+      })
+    }
+  } catch (e) {
+    modalStore.openAppModal({
+      title: '오류 발생',
+      content: '닉네임 변경 중 문제가 발생했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
     })
-    .catch((error) => {
-      console.error('Nickname update failed:', error)
-      alert('닉네임 변경에 실패했습니다. 잠시 후 다시 시도해주세요.')
-    })
+  }
 }
 
 const handleProfileSave = (profile: {
@@ -136,30 +143,56 @@ const profileSnapshot = computed(() => ({
 
 const handleLogout = async () => {
   try {
+    // Confirm Logout
+    const confirmed = await modalStore.openAppModal({
+      title: '로그아웃',
+      content: '로그아웃 하시겠습니까?',
+      type: 'confirm',
+      confirmText: '로그아웃',
+    })
+
+    if (!confirmed) return
+
     await logout()
+    await modalStore.openAppModal({
+      title: '로그아웃 완료',
+      content: '안전하게 로그아웃 되었습니다.',
+      type: 'success',
+    })
+
+    router.push({ name: 'landing' })
   } catch (error) {
     console.error('Logout failed:', error)
-  } finally {
-    router.push('/login')
   }
 }
 
 const handleDeleteAccount = async () => {
-  if (!confirm('정말 회원 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.')) {
-    return
-  }
-
   try {
+    const confirmed = await modalStore.openAppModal({
+      title: '회원 탈퇴',
+      content: '정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
+      type: 'confirm',
+      confirmText: '탈퇴하기',
+      cancelText: '유지하기', // More friendly text
+    })
+
+    if (!confirmed) return
+
     await withdraw()
-    alert('회원 탈퇴가 완료되었습니다.')
-    router.replace('/login')
+    await modalStore.openAppModal({
+      title: '탈퇴 완료',
+      content: '회원 탈퇴가 완료되었습니다.\n그동안 이용해 주셔서 감사합니다.',
+      type: 'success',
+    })
+
+    router.push({ name: 'landing' })
   } catch (error) {
     console.error('Withdraw failed:', error)
-    alert('회원 탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
-    // 실패해도 토큰이 만료되었거나 하면 로그인 페이지로 가야 할 수도 있음.
-    // authService.withdraw의 finally 블록에서 토큰을 지우므로,
-    // 실패하더라도 이미 로컬 토큰은 지워진 상태일 것임 -> 로그인으로 이동이 자연스러움.
-    router.replace('/login')
+    modalStore.openAppModal({
+      title: '오류 발생',
+      content: '회원 탈퇴 처리에 실패했습니다.\n잠시 후 다시 시도해주세요.',
+      type: 'error',
+    })
   }
 }
 

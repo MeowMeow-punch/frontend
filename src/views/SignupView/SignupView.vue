@@ -55,7 +55,7 @@ const handleComplete = async (payload: SignupResult) => {
 
     // 회원가입 후 로그인 성공 처리 -> 메인으로 이동
     clearRegisterToken()
-    router.push('/')
+    router.push('/home')
   } catch (error) {
     console.error('Signup failed:', error)
     alert('회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')

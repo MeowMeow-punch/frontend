@@ -14,9 +14,22 @@
 }
 
 :root {
-  --main-300: #00c73c;
+  /* Main Color Palette (Systematized) */
+  --main-900: #004d17;
+  --main-800: #007624;
+  /* Expanded Palette */
+  --main-500: #00c73c; /* Primary Base */
+  --main-600: #00b035; /* Hover */
+  --main-700: #00992e;
+
+  /* Existing Variables (Preserved for compatibility) */
+  --main-400: #00b035; /* Used for hover */
+  --main-300: #00c73c; /* Used as primary */
   --main-200: #4cd471;
   --main-100: #e3f9e9;
+  --main-50: #e5f9eb;
+  /* Legacy mapping for backward compatibility */
+  --main-primary: var(--main-500);
 
   --sub-main-300: #3182f6;
   --sub-main-200: #6ba5f8;

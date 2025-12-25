@@ -39,7 +39,7 @@ const fallbackBanner: Banner = {
   title: '',
   subtitle: '',
   buttonText: '',
-  route: '/',
+  route: '/home',
   theme: 'green',
   available: false,
 }
@@ -248,13 +248,15 @@ onBeforeUnmount(() => {
     </div>
 
     <div
-      class="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/20 bg-white/40 p-1.5 backdrop-blur-sm"
+      class="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/20 bg-white/80 p-1.5 shadow-sm backdrop-blur-sm"
     >
       <button
         v-for="(_, index) in banners"
         :key="index"
-        class="h-1.5 rounded-full transition-all duration-300"
-        :class="index === currentBannerIndex ? 'w-4 bg-gray-800' : 'bg-gray-400/50 w-1.5'"
+        class="block h-1.5 rounded-full transition-all duration-300"
+        :class="
+          index === currentBannerIndex ? 'w-4 bg-gray-900' : 'w-1.5 bg-gray-400 hover:bg-gray-500'
+        "
         @click.stop="() => goToBanner(index)"
       />
     </div>

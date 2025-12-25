@@ -49,7 +49,7 @@ onMounted(async () => {
 
     if (result.status === 'SUCCESS') {
       console.log('[OAuthCallback] Login success')
-      router.replace('/')
+      router.replace('/home')
     } else if (result.status === 'NEED_REGISTER') {
       console.log('[OAuthCallback] Need registration', result.data)
       setRegisterToken(result.data.registerToken)

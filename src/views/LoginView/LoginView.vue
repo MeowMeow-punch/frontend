@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Utensils } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Utensils, ArrowLeft } from 'lucide-vue-next'
 import type { OAuthProvider } from '@/services/authService'
+import { useModalStore } from '@/stores/modalStore'
 
+const router = useRouter()
+const modalStore = useModalStore()
 const isSubmitting = ref(false)
 
 const handleLogin = async (provider: OAuthProvider) => {
@@ -13,8 +17,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'KAKAO') {
     const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID
     if (!clientId) {
-      alert('카카오 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_KAKAO_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '카카오 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -30,8 +37,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'GOOGLE') {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) {
-      alert('구글 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_GOOGLE_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '구글 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -56,8 +66,11 @@ const handleLogin = async (provider: OAuthProvider) => {
   if (provider === 'NAVER') {
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
     if (!clientId) {
-      alert('네이버 클라이언트 ID가 설정되지 않았습니다.')
-      console.error('VITE_NAVER_CLIENT_ID is missing in .env')
+      modalStore.openAppModal({
+        title: '설정 오류',
+        content: '네이버 클라이언트 ID가 설정되지 않았습니다.',
+        type: 'error',
+      })
       return
     }
 
@@ -77,12 +90,21 @@ const handleLogin = async (provider: OAuthProvider) => {
     return
   }
 
-  alert('준비 중인 기능입니다.')
+  modalStore.openAppModal({ title: '알림', content: '준비 중인 기능입니다.', type: 'info' })
 }
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-white px-4">
+  <div class="relative flex min-h-screen items-center justify-center bg-white px-4">
+    <button
+      type="button"
+      @click="router.push('/')"
+      class="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-[var(--gray-600)] transition-colors hover:bg-[var(--gray-100)] hover:text-[var(--gray-900)]"
+      aria-label="뒤로가기"
+    >
+      <ArrowLeft class="h-6 w-6" />
+    </button>
+
     <div class="w-full max-w-md">
       <div class="mb-12 text-center">
         <div class="mb-6 flex justify-center">
